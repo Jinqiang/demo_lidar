@@ -1,1 +1,15 @@
-Under construction
+Depth Enhanced Monocular Odometry (Demo) is a monocular visual odometry method assisted by depth map, and optionally an IMU. The program contains three major nodes. The "featureTracking" node extracts and tracks Harris corners by Kanade Lucas Tomasi (KLT) tracker provided in the OpenCV library. The "visualOdometry" node takes the tracked features and estimates frame to frame motion. Features associated with depth (either from the depth map or triangulated using previous estimated camera motion) are used to solved the 6DOF motion, and features without depth help solve orientation. The "bundleAdjust" node refines the estimated motion with bundle adjustment. It processes sequences of images using Incremental Smoothing and Mapping (iSAM) open source library. 
+
+The program is tested on ROS Fuerte, on a laptop computer with 2.5 GHz quad cores and 6 Gib memory. This version uses a camera with point cloud perceived by a lidar.
+
+Wiki Webpage: http://wiki.ros.org/demo_lidar
+
+How to use:
+
+1) Install additional packages by "sudo apt-get install libsuitesparse-dev libeigen3-dev libsdl1.2-dev". These packages are required by iSAM library for the bundle adjustment.
+
+2) Download the program file to a ROS directory, unpack the file and rename the folder to “demo_lidar” (GitHub added "-master" to the folder name). Go to the folder and “rosmake”, then “roslunch demo_lidar.launch”. The launch file should start the program and rviz.
+
+3) Download datasets from the following website. Play the data files with “rosbag play data_file_name.bag”. Note that if a slow computer is used, users can try to play the data files at a lower speed, e.g. “rosbag play data_file_name.bag -r 0.5” plays the data file at half speed.
+
+Datasets can be downloaded at: http://www.frc.ri.cmu.edu/~jizhang03
