@@ -1,7 +1,7 @@
 <package>
   <description brief="demo_lidar">
 
-     Depth Enhanced Monocular Odometry (camera & lidar version)
+     Depth Enhanced Monocular Odometry (camera and lidar version)
 
   </description>
   <author>Ji Zhang</author>
