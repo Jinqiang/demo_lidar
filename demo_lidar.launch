@@ -1,0 +1,14 @@
+<launch>
+
+  <node pkg="demo_lidar" type="featureTracking" name="featureTracking" output="screen"/>
+  <node pkg="demo_lidar" type="visualOdometry" name="visualOdometry" output="screen"/>
+  <node pkg="demo_lidar" type="bundleAdjust" name="bundleAdjust" output="screen"/>
+  <node pkg="demo_lidar" type="scanConverter" name="scanConverter" output="screen"/>
+  <node pkg="demo_lidar" type="processDepthmap" name="processDepthmap" output="screen"/>
+  <node pkg="demo_lidar" type="stackDepthPoint" name="stackDepthPoint" output="screen"/>
+  <node pkg="demo_lidar" type="transformMaintenance" name="transformMaintenance" output="screen"/>
+  <node pkg="demo_lidar" type="registerPointCloud" name="registerPointCloud" output="screen"/>
+
+  <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find demo_lidar)/demo_lidar.vcg"/>
+
+</launch>
