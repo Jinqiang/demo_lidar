@@ -95,10 +95,22 @@ void depthPointsHandler(const sensor_msgs::PointCloud2ConstPtr& depthPoints2)
     if (depthPointsStacked->points[i].ind == -2) {
       keyframeCount++;
     }
-    depthPoints[keyframeCount]->push_back(depthPointsStacked->points[i]);
+
+    if (keyframeCount >= 0 && keyframeCount < keyframeNum) {
+      depthPoints[keyframeCount]->push_back(depthPointsStacked->points[i]);
+    }
   }
 
-  newKeyframe = true;
+  bool enoughPoints = true;
+  for (int i = 0; i < keyframeNum; i++) {
+    if (depthPoints[i]->points.size() < 10) {
+      enoughPoints = false;
+    }
+  }
+
+  if (enoughPoints) {
+    newKeyframe = true;
+  }
 }
 
 int main(int argc, char** argv)
