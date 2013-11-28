@@ -20,7 +20,7 @@ IplImage *imageLast = cvCreateImage(imgSize, IPL_DEPTH_8U, 1);
 
 int showCount = 0;
 const int showSkipNum = 2;
-const int showDSRate = 3;
+const int showDSRate = 2;
 CvSize showSize = cvSize(imageWidth / showDSRate, imageHeight / showDSRate);
 
 IplImage *imageShowMono = cvCreateImage(showSize, IPL_DEPTH_8U, 1);
@@ -42,7 +42,7 @@ const int yBoundary = 30;
 const double subregionWidth = (double)(imageWidth - 2 * xBoundary) / (double)xSubregionNum;
 const double subregionHeight = (double)(imageHeight - 2 * yBoundary) / (double)ySubregionNum;
 
-const double maxTrackDis = 10;
+const double maxTrackDis = 100;
 const int winSize = 21;
 
 IplImage *imageEig, *imageTmp, *pyrCur, *pyrLast;
