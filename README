@@ -20,4 +20,4 @@ How to use:
 
 Datasets can be downloaded at: http://www.frc.ri.cmu.edu/~jizhang03
 
-Note: Camera intrinsic parameters (K and D matrices) are defined in the "/src/cameraParameters.h" file.
+Note: Camera intrinsic parameters (K and D matrices) are defined in the "src/cameraParameters.h" file.
