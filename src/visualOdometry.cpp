@@ -74,7 +74,7 @@ ros::Publisher *depthPointsPubPointer = NULL;
 ros::Publisher *imagePointsProjPubPointer = NULL;
 ros::Publisher *imageShowPubPointer;
 
-const int showDSRate = 3;
+const int showDSRate = 2;
 
 IplImage *image;
 sensor_msgs::CvBridge bridge;
