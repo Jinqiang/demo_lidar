@@ -4,6 +4,12 @@ The program is tested on ROS Fuerte, on a laptop computer with 2.5 GHz quad core
 
 Wiki Webpage: http://wiki.ros.org/demo_lidar
 
+Another version of the program that uses an RGBD camera is available at
+
+Wiki Webpage: http://wiki.ros.org/demo_rgbd
+
+GitHub Code: https://github.com/jizhang-cmu/demo_rgbd.git
+
 How to use:
 
 1) Install additional packages by "sudo apt-get install libsuitesparse-dev libeigen3-dev libsdl1.2-dev". These packages are required by iSAM library for the bundle adjustment.
