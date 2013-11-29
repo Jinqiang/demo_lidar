@@ -10,7 +10,7 @@ Wiki Webpage: http://wiki.ros.org/demo_rgbd
 
 GitHub Code: https://github.com/jizhang-cmu/demo_rgbd.git
 
-Also, a slimmed down version of the program (without the bundle adjustment) is available for running on embedded systems
+Also, a slimmed down version (without the bundle adjustment) that uses an RGBD camera is available for running on embedded systems
 
 GitHub Code: https://github.com/jizhang-cmu/demo_rgbd_slimmed.git
 
