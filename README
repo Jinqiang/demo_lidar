@@ -10,6 +10,10 @@ Wiki Webpage: http://wiki.ros.org/demo_rgbd
 
 GitHub Code: https://github.com/jizhang-cmu/demo_rgbd.git
 
+Also, a slimmed down version of the program (without the bundle adjustment) is available for running on embedded systems
+
+GitHub Code: https://github.com/jizhang-cmu/demo_rgbd_slimmed.git
+
 How to use:
 
 1) Install additional packages by "sudo apt-get install libsuitesparse-dev libeigen3-dev libsdl1.2-dev". These packages are required by iSAM library for the bundle adjustment.
