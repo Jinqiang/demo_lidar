@@ -1,5 +1,4 @@
 <package>
-
   <description brief="demo_lidar">
 
      Depth Enhanced Monocular Odometry (camera and lidar version)
