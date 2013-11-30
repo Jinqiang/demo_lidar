@@ -1,4 +1,4 @@
-<package>
+<stack>
 
   <version>0.9.1</version>
 
@@ -7,8 +7,7 @@
      Depth Enhanced Monocular Odometry (camera and lidar version)
 
   </description>
-  <maintainer email="zhangji@cmu.edu">Ji Zhang</maintainer>
-  <author email="zhangji@cmu.edu">Ji Zhang</author>
+  <author>Ji Zhang</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://wiki.ros.org/demo_lidar</url>
@@ -18,6 +17,6 @@
   <depend stack="vision_opencv" />
   <depend stack="perception_pcl" />
 
-</package>
+</stack>
 
 
