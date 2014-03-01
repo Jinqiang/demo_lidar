@@ -52,8 +52,6 @@ std::vector<float> pointSearchSqrDis;
 float transformSum[6] = {0};
 float angleSum[3] = {0};
 
-pcl::PointXYZ origin(0, 0, 0), xAxis(1, 0, 0), yAxis(0, 1, 0), zAxis(0, 0, 1);
-
 int imuPointerFront = 0;
 int imuPointerLast = -1;
 const int imuQueLength = 200;
@@ -79,48 +77,44 @@ const int showDSRate = 2;
 IplImage *image;
 sensor_msgs::CvBridge bridge;
 
-void transformPoint(pcl::PointXYZ *point, float *r)
+void accumulateRotation(float cx, float cy, float cz, float lx, float ly, float lz, 
+                        float &ox, float &oy, float &oz)
 {
-  double cosrx = cos(r[0]);
-  double sinrx = sin(r[0]);
-  double cosry = cos(r[1]);
-  double sinry = sin(r[1]);
-  double cosrz = cos(r[2]);
-  double sinrz = sin(r[2]);
+  float srx = cos(lx)*cos(cx)*sin(ly)*sin(cz) - cos(cx)*cos(cz)*sin(lx) - cos(lx)*cos(ly)*sin(cx);
+  ox = -asin(srx);
 
-  double x1 = cosry * point->x + sinry * point->z;
-  double y1 = point->y;
-  double z1 = -sinry * point->x + cosry * point->z;
+  float srycrx = sin(lx)*(cos(cy)*sin(cz) - cos(cz)*sin(cx)*sin(cy)) + cos(lx)*sin(ly)*(cos(cy)*cos(cz) 
+               + sin(cx)*sin(cy)*sin(cz)) + cos(lx)*cos(ly)*cos(cx)*sin(cy);
+  float crycrx = cos(lx)*cos(ly)*cos(cx)*cos(cy) - cos(lx)*sin(ly)*(cos(cz)*sin(cy) 
+               - cos(cy)*sin(cx)*sin(cz)) - sin(lx)*(sin(cy)*sin(cz) + cos(cy)*cos(cz)*sin(cx));
+  oy = atan2(srycrx / cos(ox), crycrx / cos(ox));
 
-  double x2 = x1;
-  double y2 = cosrx * y1 - sinrx * z1;
-  double z2 = sinrx * y1 + cosrx * z1;
-
-  point->x = cosrz * x2 - sinrz * y2 + r[3];
-  point->y = sinrz * x2 + cosrz * y2 + r[4];
-  point->z = z2 + r[5];
+  float srzcrx = sin(cx)*(cos(lz)*sin(ly) - cos(ly)*sin(lx)*sin(lz)) + cos(cx)*sin(cz)*(cos(ly)*cos(lz) 
+               + sin(lx)*sin(ly)*sin(lz)) + cos(lx)*cos(cx)*cos(cz)*sin(lz);
+  float crzcrx = cos(lx)*cos(lz)*cos(cx)*cos(cz) - cos(cx)*sin(cz)*(cos(ly)*sin(lz) 
+               - cos(lz)*sin(lx)*sin(ly)) - sin(cx)*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx));
+  oz = atan2(srzcrx / cos(ox), crzcrx / cos(ox));
 }
 
-void transformBack(pcl::PointXYZ *point, float *r)
+void diffRotation(float cx, float cy, float cz, float lx, float ly, float lz, 
+                  float &ox, float &oy, float &oz)
 {
-  double cosrx = cos(r[0]);
-  double sinrx = sin(r[0]);
-  double cosry = cos(r[1]);
-  double sinry = sin(r[1]);
-  double cosrz = cos(r[2]);
-  double sinrz = sin(r[2]);
+  float srx = cos(cx)*cos(cy)*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx)) 
+            - cos(cx)*sin(cy)*(cos(ly)*sin(lz) - cos(lz)*sin(lx)*sin(ly)) - cos(lx)*cos(lz)*sin(cx);
+  ox = -asin(srx);
 
-  double x1 = cosrz * (point->x - r[3]) + sinrz * (point->y - r[4]);
-  double y1 = -sinrz * (point->x - r[3]) + cosrz * (point->y - r[4]);
-  double z1 = point->z - r[5];
+  float srycrx = cos(cx)*sin(cy)*(cos(ly)*cos(lz) + sin(lx)*sin(ly)*sin(lz)) 
+               - cos(cx)*cos(cy)*(cos(lz)*sin(ly) - cos(ly)*sin(lx)*sin(lz)) - cos(lx)*sin(cx)*sin(lz);
+  float crycrx = sin(cx)*sin(lx) + cos(cx)*cos(cy)*cos(lx)*cos(ly) + cos(cx)*cos(lx)*sin(cy)*sin(ly);
+  oy = atan2(srycrx / cos(ox), crycrx / cos(ox));
 
-  double x2 = x1;
-  double y2 = cosrx * y1 + sinrx * z1;
-  double z2 = -sinrx * y1 + cosrx * z1;
-
-  point->x = cosry * x2 - sinry * z2;
-  point->y = y2;
-  point->z = sinry * x2 + cosry * z2;
+  float srzcrx = cos(cx)*cos(lx)*cos(lz)*sin(cz) - (cos(cz)*sin(cy) 
+               - cos(cy)*sin(cx)*sin(cz))*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx)) 
+               - (cos(cy)*cos(cz) + sin(cx)*sin(cy)*sin(cz))*(cos(ly)*sin(lz) - cos(lz)*sin(lx)*sin(ly));
+  float crzcrx = (sin(cy)*sin(cz) + cos(cy)*cos(cz)*sin(cx))*(sin(ly)*sin(lz) 
+               + cos(ly)*cos(lz)*sin(lx)) + (cos(cy)*sin(cz) - cos(cz)*sin(cx)*sin(cy))*(cos(ly)*sin(lz) 
+               - cos(lz)*sin(lx)*sin(ly)) + cos(cx)*cos(cz)*cos(lx)*cos(lz);
+  oz = atan2(srzcrx / cos(ox), crzcrx / cos(ox));
 }
 
 void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
@@ -544,44 +538,26 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
     imuInited = true;
   }
 
-  transformPoint(&origin, transform);
-  transformPoint(&xAxis, transform);
-  transformPoint(&yAxis, transform);
-  transformPoint(&zAxis, transform);
-
-  /*imagePointsProj->push_back(origin);
-  imagePointsProj->push_back(xAxis);
-  imagePointsProj->push_back(yAxis);
-  imagePointsProj->push_back(zAxis);*/
-
-  float rx = -asin(yAxis.z - origin.z);
-  float ry = -atan2(-(xAxis.z - origin.z) / cos(rx), (zAxis.z - origin.z) / cos(rx));
-  float rz = -asin(-(yAxis.x - origin.x) / cos(rx));
+  float rx, ry, rz;
+  accumulateRotation(transformSum[0], transformSum[1], transformSum[2], 
+                    -transform[0], -transform[1], -transform[2], rx, ry, rz);
 
   if (imuPointerLast >= 0) {
-    transformBack(&origin, transform);
-    transformBack(&xAxis, transform);
-    transformBack(&yAxis, transform);
-    transformBack(&zAxis, transform);
+    float drx, dry, drz;
+    diffRotation(imuPitchCur, imuYawCur - imuYawInit, imuRollCur, rx, ry, rz, drx, dry, drz);
 
-    transform[0] -= 0.1 * (imuPitchCur - rx);
-    /*if (imuYawCur - imuYawInit - ry > PI) {
-      transform[1] -= 0.1 * (imuYawCur - imuYawInit - ry - 2 * PI);
+    transform[0] -= 0.1 * drx;
+    /*if (dry > PI) {
+      transform[1] -= 0.1 * (dry - 2 * PI);
     } else if (imuYawCur - imuYawInit - ry < -PI) {
-      transform[1] -= 0.1 * (imuYawCur - imuYawInit - ry + 2 * PI);
+      transform[1] -= 0.1 * (dry + 2 * PI);
     } else {
-      transform[1] -= 0.1 * (imuYawCur - imuYawInit - ry);
+      transform[1] -= 0.1 * dry;
     }*/
-    transform[2] -= 0.1 * (imuRollCur - rz);
+    transform[2] -= 0.1 * drz;
 
-    transformPoint(&origin, transform);
-    transformPoint(&xAxis, transform);
-    transformPoint(&yAxis, transform);
-    transformPoint(&zAxis, transform);
-
-    rx = -asin(yAxis.z - origin.z);
-    ry = -atan2(-(xAxis.z - origin.z) / cos(rx), (zAxis.z - origin.z) / cos(rx));
-    rz = -asin(-(yAxis.x - origin.x) / cos(rx));
+    accumulateRotation(transformSum[0], transformSum[1], transformSum[2], 
+                      -transform[0], -transform[1], -transform[2], rx, ry, rz);
   }
 
   float x1 = cos(rz) * transform[3] - sin(rz) * transform[4];
@@ -779,17 +755,17 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
   int ipRelationsNum = ipRelations->points.size();
   for (int i = 0; i < ipRelationsNum; i++) {
     if (fabs(ipRelations->points[i].v) < 0.5) {
-      cvCircle(image, cvPoint((kArray[2] - ipRelations->points[i].z * kArray[0]) / showDSRate,
-               (kArray[5] - ipRelations->points[i].h * kArray[4]) / showDSRate), 1, CV_RGB(0, 0, 255), 2);
+      cvCircle(image, cvPoint((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
+               (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0, 0, 255), 2);
     } else if (fabs(ipRelations->points[i].v - 1) < 0.5) {
-      cvCircle(image, cvPoint((kArray[2] - ipRelations->points[i].z * kArray[0]) / showDSRate,
-               (kArray[5] - ipRelations->points[i].h * kArray[4]) / showDSRate), 1, CV_RGB(0, 255, 0), 2);
+      cvCircle(image, cvPoint((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
+               (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0, 255, 0), 2);
     } else if (fabs(ipRelations->points[i].v - 2) < 0.5) {
-      cvCircle(image, cvPoint((kArray[2] - ipRelations->points[i].z * kArray[0]) / showDSRate,
-               (kArray[5] - ipRelations->points[i].h * kArray[4]) / showDSRate), 1, CV_RGB(0,255,0), 2);
+      cvCircle(image, cvPoint((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
+               (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0,255,0), 2);
     } else {
-      cvCircle(image, cvPoint((kArray[2] - ipRelations->points[i].z * kArray[0]) / showDSRate,
-               (kArray[5] - ipRelations->points[i].h * kArray[4]) / showDSRate), 1, CV_RGB(255, 0, 0), 2);
+      cvCircle(image, cvPoint((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
+               (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(255, 0, 0), 2);
     }
   }
 
