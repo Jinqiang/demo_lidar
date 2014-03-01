@@ -26,8 +26,8 @@ CvSize showSize = cvSize(imageWidth / showDSRate, imageHeight / showDSRate);
 IplImage *imageShowMono = cvCreateImage(showSize, IPL_DEPTH_8U, 1);
 IplImage *imageShowRGB = cvCreateImage(showSize, IPL_DEPTH_8U, 3);
 
-CvMat kMat = cvMat(3, 3, CV_64FC1, kArray);
-CvMat dMat = cvMat(4, 1, CV_64FC1, dArray);
+CvMat kMat = cvMat(3, 3, CV_64FC1, kImage);
+CvMat dMat = cvMat(4, 1, CV_64FC1, dImage);
 
 IplImage *mapx, *mapy;
 
@@ -159,19 +159,19 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
         featuresLast[featureCount].y = featuresLast[i].y;
         featuresInd[featureCount] = featuresInd[i];
 
-        point.u = -(featuresCur[featureCount].x - kArray[2]) / kArray[0];
-        point.v = -(featuresCur[featureCount].y - kArray[5]) / kArray[4];
+        point.u = -(featuresCur[featureCount].x - kImage[2]) / kImage[0];
+        point.v = -(featuresCur[featureCount].y - kImage[5]) / kImage[4];
         point.ind = featuresInd[featureCount];
         imagePointsCur->push_back(point);
 
         if (i >= recordFeatureNum) {
-          point.u = -(featuresLast[featureCount].x - kArray[2]) / kArray[0];
-          point.v = -(featuresLast[featureCount].y - kArray[5]) / kArray[4];
+          point.u = -(featuresLast[featureCount].x - kImage[2]) / kImage[0];
+          point.v = -(featuresLast[featureCount].y - kImage[5]) / kImage[4];
           imagePointsLast->push_back(point);
         }
 
-        meanShiftX += fabs((featuresCur[featureCount].x - featuresLast[featureCount].x) / kArray[0]);
-        meanShiftY += fabs((featuresCur[featureCount].y - featuresLast[featureCount].y) / kArray[4]);
+        meanShiftX += fabs((featuresCur[featureCount].x - featuresLast[featureCount].x) / kImage[0]);
+        meanShiftY += fabs((featuresCur[featureCount].y - featuresLast[featureCount].y) / kImage[4]);
 
         featureCount++;
         subregionFeatureNum[ind]++;
@@ -231,4 +231,3 @@ int main(int argc, char** argv)
 
   return 0;
 }
-
