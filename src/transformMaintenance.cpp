@@ -19,8 +19,8 @@ double timeOdomAftBA;
 double rollRec, pitchRec, yawRec;
 double txRec, tyRec, tzRec;
 
-float transformBefBA[6] = {0};
-float transformAftBA[6] = {0};
+double transformBefBA[6] = {0};
+double transformAftBA[6] = {0};
 
 ros::Publisher *voData2PubPointer = NULL;
 tf::TransformBroadcaster *tfBroadcaster2Pointer = NULL;
@@ -29,76 +29,76 @@ tf::StampedTransform voDataTrans2;
 
 void transformAssociateToBA()
 {
-  float txDiff = txRec - transformBefBA[3];
-  float tyDiff = tyRec - transformBefBA[4];
-  float tzDiff = tzRec - transformBefBA[5];
+  double txDiff = txRec - transformBefBA[3];
+  double tyDiff = tyRec - transformBefBA[4];
+  double tzDiff = tzRec - transformBefBA[5];
 
-  float x1 = cos(yawRec) * txDiff + sin(yawRec) * tzDiff;
-  float y1 = tyDiff;
-  float z1 = -sin(yawRec) * txDiff + cos(yawRec) * tzDiff;
+  double x1 = cos(yawRec) * txDiff + sin(yawRec) * tzDiff;
+  double y1 = tyDiff;
+  double z1 = -sin(yawRec) * txDiff + cos(yawRec) * tzDiff;
 
-  float x2 = x1;
-  float y2 = cos(pitchRec) * y1 - sin(pitchRec) * z1;
-  float z2 = sin(pitchRec) * y1 + cos(pitchRec) * z1;
+  double x2 = x1;
+  double y2 = cos(pitchRec) * y1 - sin(pitchRec) * z1;
+  double z2 = sin(pitchRec) * y1 + cos(pitchRec) * z1;
 
   txDiff = cos(rollRec) * x2 + sin(rollRec) * y2;
   tyDiff = -sin(rollRec) * x2 + cos(rollRec) * y2;
   tzDiff = z2;
 
-  float sbcx = sin(-pitchRec);
-  float cbcx = cos(-pitchRec);
-  float sbcy = sin(-yawRec);
-  float cbcy = cos(-yawRec);
-  float sbcz = sin(rollRec);
-  float cbcz = cos(rollRec);
+  double sbcx = sin(-pitchRec);
+  double cbcx = cos(-pitchRec);
+  double sbcy = sin(-yawRec);
+  double cbcy = cos(-yawRec);
+  double sbcz = sin(rollRec);
+  double cbcz = cos(rollRec);
 
-  float sblx = sin(-transformBefBA[0]);
-  float cblx = cos(-transformBefBA[0]);
-  float sbly = sin(-transformBefBA[1]);
-  float cbly = cos(-transformBefBA[1]);
-  float sblz = sin(transformBefBA[2]);
-  float cblz = cos(transformBefBA[2]);
+  double sblx = sin(-transformBefBA[0]);
+  double cblx = cos(-transformBefBA[0]);
+  double sbly = sin(-transformBefBA[1]);
+  double cbly = cos(-transformBefBA[1]);
+  double sblz = sin(transformBefBA[2]);
+  double cblz = cos(transformBefBA[2]);
 
-  float salx = sin(-transformAftBA[0]);
-  float calx = cos(-transformAftBA[0]);
-  float saly = sin(-transformAftBA[1]);
-  float caly = cos(-transformAftBA[1]);
-  float salz = sin(transformAftBA[2]);
-  float calz = cos(transformAftBA[2]);
+  double salx = sin(-transformAftBA[0]);
+  double calx = cos(-transformAftBA[0]);
+  double saly = sin(-transformAftBA[1]);
+  double caly = cos(-transformAftBA[1]);
+  double salz = sin(transformAftBA[2]);
+  double calz = cos(transformAftBA[2]);
 
-  float srx = -sbcx*(salx*sblx + calx*caly*cblx*cbly + calx*cblx*saly*sbly) 
-            - cbcx*cbcz*(calx*saly*(cbly*sblz - cblz*sblx*sbly) 
-            - calx*caly*(sbly*sblz + cbly*cblz*sblx) + cblx*cblz*salx) 
-            - cbcx*sbcz*(calx*caly*(cblz*sbly - cbly*sblx*sblz) 
-            - calx*saly*(cbly*cblz + sblx*sbly*sblz) + cblx*salx*sblz);
+  double srx = -sbcx*(salx*sblx + calx*caly*cblx*cbly + calx*cblx*saly*sbly) 
+             - cbcx*cbcz*(calx*saly*(cbly*sblz - cblz*sblx*sbly) 
+             - calx*caly*(sbly*sblz + cbly*cblz*sblx) + cblx*cblz*salx) 
+             - cbcx*sbcz*(calx*caly*(cblz*sbly - cbly*sblx*sblz) 
+             - calx*saly*(cbly*cblz + sblx*sbly*sblz) + cblx*salx*sblz);
   pitchRec = asin(srx);
 
-  float srycrx = (cbcy*sbcz - cbcz*sbcx*sbcy)*(calx*saly*(cbly*sblz - cblz*sblx*sbly) 
-               - calx*caly*(sbly*sblz + cbly*cblz*sblx) + cblx*cblz*salx) 
-               - (cbcy*cbcz + sbcx*sbcy*sbcz)*(calx*caly*(cblz*sbly - cbly*sblx*sblz) 
-               - calx*saly*(cbly*cblz + sblx*sbly*sblz) + cblx*salx*sblz) 
-               + cbcx*sbcy*(salx*sblx + calx*caly*cblx*cbly + calx*cblx*saly*sbly);
-  float crycrx = (cbcz*sbcy - cbcy*sbcx*sbcz)*(calx*caly*(cblz*sbly - cbly*sblx*sblz) 
-               - calx*saly*(cbly*cblz + sblx*sbly*sblz) + cblx*salx*sblz) 
-               - (sbcy*sbcz + cbcy*cbcz*sbcx)*(calx*saly*(cbly*sblz - cblz*sblx*sbly) 
-               - calx*caly*(sbly*sblz + cbly*cblz*sblx) + cblx*cblz*salx) 
-               + cbcx*cbcy*(salx*sblx + calx*caly*cblx*cbly + calx*cblx*saly*sbly);
+  double srycrx = (cbcy*sbcz - cbcz*sbcx*sbcy)*(calx*saly*(cbly*sblz - cblz*sblx*sbly) 
+                - calx*caly*(sbly*sblz + cbly*cblz*sblx) + cblx*cblz*salx) 
+                - (cbcy*cbcz + sbcx*sbcy*sbcz)*(calx*caly*(cblz*sbly - cbly*sblx*sblz) 
+                - calx*saly*(cbly*cblz + sblx*sbly*sblz) + cblx*salx*sblz) 
+                + cbcx*sbcy*(salx*sblx + calx*caly*cblx*cbly + calx*cblx*saly*sbly);
+  double crycrx = (cbcz*sbcy - cbcy*sbcx*sbcz)*(calx*caly*(cblz*sbly - cbly*sblx*sblz) 
+                - calx*saly*(cbly*cblz + sblx*sbly*sblz) + cblx*salx*sblz) 
+                - (sbcy*sbcz + cbcy*cbcz*sbcx)*(calx*saly*(cbly*sblz - cblz*sblx*sbly) 
+                - calx*caly*(sbly*sblz + cbly*cblz*sblx) + cblx*cblz*salx) 
+                + cbcx*cbcy*(salx*sblx + calx*caly*cblx*cbly + calx*cblx*saly*sbly);
   yawRec = -atan2(srycrx / cos(-pitchRec), crycrx / cos(-pitchRec));
 
-  float srzcrx = sbcx*(cblx*cbly*(calz*saly - caly*salx*salz) 
-               - cblx*sbly*(caly*calz + salx*saly*salz) + calx*salz*sblx) 
-               - cbcx*cbcz*((caly*calz + salx*saly*salz)*(cbly*sblz - cblz*sblx*sbly) 
-               + (calz*saly - caly*salx*salz)*(sbly*sblz + cbly*cblz*sblx) 
-               - calx*cblx*cblz*salz) + cbcx*sbcz*((caly*calz + salx*saly*salz)*(cbly*cblz 
-               + sblx*sbly*sblz) + (calz*saly - caly*salx*salz)*(cblz*sbly - cbly*sblx*sblz) 
-               + calx*cblx*salz*sblz);
-  float crzcrx = sbcx*(cblx*sbly*(caly*salz - calz*salx*saly) 
-               - cblx*cbly*(saly*salz + caly*calz*salx) + calx*calz*sblx) 
-               + cbcx*cbcz*((saly*salz + caly*calz*salx)*(sbly*sblz + cbly*cblz*sblx) 
-               + (caly*salz - calz*salx*saly)*(cbly*sblz - cblz*sblx*sbly) 
-               + calx*calz*cblx*cblz) - cbcx*sbcz*((saly*salz + caly*calz*salx)*(cblz*sbly 
-               - cbly*sblx*sblz) + (caly*salz - calz*salx*saly)*(cbly*cblz + sblx*sbly*sblz) 
-               - calx*calz*cblx*sblz);
+  double srzcrx = sbcx*(cblx*cbly*(calz*saly - caly*salx*salz) 
+                - cblx*sbly*(caly*calz + salx*saly*salz) + calx*salz*sblx) 
+                - cbcx*cbcz*((caly*calz + salx*saly*salz)*(cbly*sblz - cblz*sblx*sbly) 
+                + (calz*saly - caly*salx*salz)*(sbly*sblz + cbly*cblz*sblx) 
+                - calx*cblx*cblz*salz) + cbcx*sbcz*((caly*calz + salx*saly*salz)*(cbly*cblz 
+                + sblx*sbly*sblz) + (calz*saly - caly*salx*salz)*(cblz*sbly - cbly*sblx*sblz) 
+                + calx*cblx*salz*sblz);
+  double crzcrx = sbcx*(cblx*sbly*(caly*salz - calz*salx*saly) 
+                - cblx*cbly*(saly*salz + caly*calz*salx) + calx*calz*sblx) 
+                + cbcx*cbcz*((saly*salz + caly*calz*salx)*(sbly*sblz + cbly*cblz*sblx) 
+                + (caly*salz - calz*salx*saly)*(cbly*sblz - cblz*sblx*sbly) 
+                + calx*calz*cblx*cblz) - cbcx*sbcz*((saly*salz + caly*calz*salx)*(cblz*sbly 
+                - cbly*sblx*sblz) + (caly*salz - calz*salx*saly)*(cbly*cblz + sblx*sbly*sblz) 
+                - calx*calz*cblx*sblz);
   rollRec = atan2(srzcrx / cos(-pitchRec), crzcrx / cos(-pitchRec));
 
   x1 = cos(rollRec) * txDiff - sin(rollRec) * tyDiff;

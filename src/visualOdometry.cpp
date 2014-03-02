@@ -49,22 +49,22 @@ int depthCloudNum = 0;
 std::vector<int> pointSearchInd;
 std::vector<float> pointSearchSqrDis;
 
-float transformSum[6] = {0};
-float angleSum[3] = {0};
+double transformSum[6] = {0};
+double angleSum[3] = {0};
 
 int imuPointerFront = 0;
 int imuPointerLast = -1;
 const int imuQueLength = 200;
 bool imuInited = false;
 
-float imuRollCur = 0, imuPitchCur = 0, imuYawCur = 0;
-float imuRollLast = 0, imuPitchLast = 0, imuYawLast = 0;
+double imuRollCur = 0, imuPitchCur = 0, imuYawCur = 0;
+double imuRollLast = 0, imuPitchLast = 0, imuYawLast = 0;
 
-float imuYawInit = 0;
+double imuYawInit = 0;
 double imuTime[imuQueLength] = {0};
-float imuRoll[imuQueLength] = {0};
-float imuPitch[imuQueLength] = {0};
-float imuYaw[imuQueLength] = {0};
+double imuRoll[imuQueLength] = {0};
+double imuPitch[imuQueLength] = {0};
+double imuYaw[imuQueLength] = {0};
 
 ros::Publisher *voDataPubPointer = NULL;
 tf::TransformBroadcaster *tfBroadcasterPointer = NULL;
@@ -77,43 +77,43 @@ const int showDSRate = 2;
 IplImage *image;
 sensor_msgs::CvBridge bridge;
 
-void accumulateRotation(float cx, float cy, float cz, float lx, float ly, float lz, 
-                        float &ox, float &oy, float &oz)
+void accumulateRotation(double cx, double cy, double cz, double lx, double ly, double lz, 
+                        double &ox, double &oy, double &oz)
 {
-  float srx = cos(lx)*cos(cx)*sin(ly)*sin(cz) - cos(cx)*cos(cz)*sin(lx) - cos(lx)*cos(ly)*sin(cx);
+  double srx = cos(lx)*cos(cx)*sin(ly)*sin(cz) - cos(cx)*cos(cz)*sin(lx) - cos(lx)*cos(ly)*sin(cx);
   ox = -asin(srx);
 
-  float srycrx = sin(lx)*(cos(cy)*sin(cz) - cos(cz)*sin(cx)*sin(cy)) + cos(lx)*sin(ly)*(cos(cy)*cos(cz) 
-               + sin(cx)*sin(cy)*sin(cz)) + cos(lx)*cos(ly)*cos(cx)*sin(cy);
-  float crycrx = cos(lx)*cos(ly)*cos(cx)*cos(cy) - cos(lx)*sin(ly)*(cos(cz)*sin(cy) 
-               - cos(cy)*sin(cx)*sin(cz)) - sin(lx)*(sin(cy)*sin(cz) + cos(cy)*cos(cz)*sin(cx));
+  double srycrx = sin(lx)*(cos(cy)*sin(cz) - cos(cz)*sin(cx)*sin(cy)) + cos(lx)*sin(ly)*(cos(cy)*cos(cz) 
+                + sin(cx)*sin(cy)*sin(cz)) + cos(lx)*cos(ly)*cos(cx)*sin(cy);
+  double crycrx = cos(lx)*cos(ly)*cos(cx)*cos(cy) - cos(lx)*sin(ly)*(cos(cz)*sin(cy) 
+                - cos(cy)*sin(cx)*sin(cz)) - sin(lx)*(sin(cy)*sin(cz) + cos(cy)*cos(cz)*sin(cx));
   oy = atan2(srycrx / cos(ox), crycrx / cos(ox));
 
-  float srzcrx = sin(cx)*(cos(lz)*sin(ly) - cos(ly)*sin(lx)*sin(lz)) + cos(cx)*sin(cz)*(cos(ly)*cos(lz) 
-               + sin(lx)*sin(ly)*sin(lz)) + cos(lx)*cos(cx)*cos(cz)*sin(lz);
-  float crzcrx = cos(lx)*cos(lz)*cos(cx)*cos(cz) - cos(cx)*sin(cz)*(cos(ly)*sin(lz) 
-               - cos(lz)*sin(lx)*sin(ly)) - sin(cx)*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx));
+  double srzcrx = sin(cx)*(cos(lz)*sin(ly) - cos(ly)*sin(lx)*sin(lz)) + cos(cx)*sin(cz)*(cos(ly)*cos(lz) 
+                + sin(lx)*sin(ly)*sin(lz)) + cos(lx)*cos(cx)*cos(cz)*sin(lz);
+  double crzcrx = cos(lx)*cos(lz)*cos(cx)*cos(cz) - cos(cx)*sin(cz)*(cos(ly)*sin(lz) 
+                - cos(lz)*sin(lx)*sin(ly)) - sin(cx)*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx));
   oz = atan2(srzcrx / cos(ox), crzcrx / cos(ox));
 }
 
-void diffRotation(float cx, float cy, float cz, float lx, float ly, float lz, 
-                  float &ox, float &oy, float &oz)
+void diffRotation(double cx, double cy, double cz, double lx, double ly, double lz, 
+                  double &ox, double &oy, double &oz)
 {
-  float srx = cos(cx)*cos(cy)*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx)) 
-            - cos(cx)*sin(cy)*(cos(ly)*sin(lz) - cos(lz)*sin(lx)*sin(ly)) - cos(lx)*cos(lz)*sin(cx);
+  double srx = cos(cx)*cos(cy)*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx)) 
+             - cos(cx)*sin(cy)*(cos(ly)*sin(lz) - cos(lz)*sin(lx)*sin(ly)) - cos(lx)*cos(lz)*sin(cx);
   ox = -asin(srx);
 
-  float srycrx = cos(cx)*sin(cy)*(cos(ly)*cos(lz) + sin(lx)*sin(ly)*sin(lz)) 
-               - cos(cx)*cos(cy)*(cos(lz)*sin(ly) - cos(ly)*sin(lx)*sin(lz)) - cos(lx)*sin(cx)*sin(lz);
-  float crycrx = sin(cx)*sin(lx) + cos(cx)*cos(cy)*cos(lx)*cos(ly) + cos(cx)*cos(lx)*sin(cy)*sin(ly);
+  double srycrx = cos(cx)*sin(cy)*(cos(ly)*cos(lz) + sin(lx)*sin(ly)*sin(lz)) 
+                - cos(cx)*cos(cy)*(cos(lz)*sin(ly) - cos(ly)*sin(lx)*sin(lz)) - cos(lx)*sin(cx)*sin(lz);
+  double crycrx = sin(cx)*sin(lx) + cos(cx)*cos(cy)*cos(lx)*cos(ly) + cos(cx)*cos(lx)*sin(cy)*sin(ly);
   oy = atan2(srycrx / cos(ox), crycrx / cos(ox));
 
-  float srzcrx = cos(cx)*cos(lx)*cos(lz)*sin(cz) - (cos(cz)*sin(cy) 
-               - cos(cy)*sin(cx)*sin(cz))*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx)) 
-               - (cos(cy)*cos(cz) + sin(cx)*sin(cy)*sin(cz))*(cos(ly)*sin(lz) - cos(lz)*sin(lx)*sin(ly));
-  float crzcrx = (sin(cy)*sin(cz) + cos(cy)*cos(cz)*sin(cx))*(sin(ly)*sin(lz) 
-               + cos(ly)*cos(lz)*sin(lx)) + (cos(cy)*sin(cz) - cos(cz)*sin(cx)*sin(cy))*(cos(ly)*sin(lz) 
-               - cos(lz)*sin(lx)*sin(ly)) + cos(cx)*cos(cz)*cos(lx)*cos(lz);
+  double srzcrx = cos(cx)*cos(lx)*cos(lz)*sin(cz) - (cos(cz)*sin(cy) 
+                - cos(cy)*sin(cx)*sin(cz))*(sin(ly)*sin(lz) + cos(ly)*cos(lz)*sin(lx)) 
+                - (cos(cy)*cos(cz) + sin(cx)*sin(cy)*sin(cz))*(cos(ly)*sin(lz) - cos(lz)*sin(lx)*sin(ly));
+  double crzcrx = (sin(cy)*sin(cz) + cos(cy)*cos(cz)*sin(cx))*(sin(ly)*sin(lz) 
+                + cos(ly)*cos(lz)*sin(lx)) + (cos(cy)*sin(cz) - cos(cz)*sin(cx)*sin(cy))*(cos(ly)*sin(lz) 
+                - cos(lz)*sin(lx)*sin(ly)) + cos(cx)*cos(cz)*cos(lx)*cos(lz);
   oz = atan2(srzcrx / cos(ox), crzcrx / cos(ox));
 }
 
@@ -126,7 +126,7 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
   imuPitchLast = imuPitchCur;
   imuYawLast = imuYawCur;
 
-  float transform[6] = {0};
+  double transform[6] = {0};
   if (imuPointerLast >= 0) {
     while (imuPointerFront != imuPointerLast) {
       if (imagePointsCurTime < imuTime[imuPointerFront]) {
@@ -141,10 +141,10 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
       imuYawCur = imuYaw[imuPointerFront];
     } else {
       int imuPointerBack = (imuPointerFront + imuQueLength - 1) % imuQueLength;
-      float ratioFront = (imagePointsCurTime - imuTime[imuPointerBack]) 
+      double ratioFront = (imagePointsCurTime - imuTime[imuPointerBack]) 
+                        / (imuTime[imuPointerFront] - imuTime[imuPointerBack]);
+      double ratioBack = (imuTime[imuPointerFront] - imagePointsCurTime) 
                        / (imuTime[imuPointerFront] - imuTime[imuPointerBack]);
-      float ratioBack = (imuTime[imuPointerFront] - imagePointsCurTime) 
-                      / (imuTime[imuPointerFront] - imuTime[imuPointerBack]);
 
       imuRollCur = imuRoll[imuPointerFront] * ratioFront + imuRoll[imuPointerBack] * ratioBack;
       imuPitchCur = imuPitch[imuPointerFront] * ratioFront + imuPitch[imuPointerBack] * ratioBack;
@@ -266,83 +266,83 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
 
         if (sqrt(disX * disX + disY * disY + disZ * disZ) > 1) {
 
-          float u0 = startPointsLast->points[i].u;
-          float v0 = startPointsLast->points[i].v;
-          float u1 = ipr.x;
-          float v1 = ipr.y;
+          double u0 = startPointsLast->points[i].u;
+          double v0 = startPointsLast->points[i].v;
+          double u1 = ipr.x;
+          double v1 = ipr.y;
 
-          float srx0 = sin(-startTransLast->points[i].x);
-          float crx0 = cos(-startTransLast->points[i].x);
-          float sry0 = sin(-startTransLast->points[i].y);
-          float cry0 = cos(-startTransLast->points[i].y);
-          float srz0 = sin(-startTransLast->points[i].z);
-          float crz0 = cos(-startTransLast->points[i].z);
+          double srx0 = sin(-startTransLast->points[i].x);
+          double crx0 = cos(-startTransLast->points[i].x);
+          double sry0 = sin(-startTransLast->points[i].y);
+          double cry0 = cos(-startTransLast->points[i].y);
+          double srz0 = sin(-startTransLast->points[i].z);
+          double crz0 = cos(-startTransLast->points[i].z);
 
-          float srx1 = sin(-transformSum[0]);
-          float crx1 = cos(-transformSum[0]);
-          float sry1 = sin(-transformSum[1]);
-          float cry1 = cos(-transformSum[1]);
-          float srz1 = sin(-transformSum[2]);
-          float crz1 = cos(-transformSum[2]);
+          double srx1 = sin(-transformSum[0]);
+          double crx1 = cos(-transformSum[0]);
+          double sry1 = sin(-transformSum[1]);
+          double cry1 = cos(-transformSum[1]);
+          double srz1 = sin(-transformSum[2]);
+          double crz1 = cos(-transformSum[2]);
 
-          float tx0 = -startTransLast->points[i].h;
-          float ty0 = -startTransLast->points[i].s;
-          float tz0 = -startTransLast->points[i].v;
+          double tx0 = -startTransLast->points[i].h;
+          double ty0 = -startTransLast->points[i].s;
+          double tz0 = -startTransLast->points[i].v;
 
-          float tx1 = -transformSum[3];
-          float ty1 = -transformSum[4];
-          float tz1 = -transformSum[5];
+          double tx1 = -transformSum[3];
+          double ty1 = -transformSum[4];
+          double tz1 = -transformSum[5];
 
-          float top0 = (srx1*(ty0 - ty1) + crx1*cry1*(tz0 - tz1) - crx1*sry1*(tx0 
-                     - tx1))*(v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*crz1 - srx1*sry1*srz1) + (sry0*srz0 
-                     - cry0*crz0*srx0)*(crz1*sry1 + cry1*srx1*srz1) - crx0*crx1*crz0*srz1) 
-                     + u0*((crz0*sry0 + cry0*srx0*srz0)*(crz1*sry1 + cry1*srx1*srz1) + (cry0*crz0 
-                     - srx0*sry0*srz0)*(cry1*crz1 - srx1*sry1*srz1) + crx0*crx1*srz0*srz1) 
-                     + crx0*cry0*(crz1*sry1 + cry1*srx1*srz1) - crx0*sry0*(cry1*crz1 - srx1*sry1*srz1) 
-                     - crx1*srx0*srz1) - ((cry1*crz1 - srx1*sry1*srz1)*(tx0 - tx1) + (crz1*sry1 
-                     + cry1*srx1*srz1)*(tz0 - tz1) - crx1*srz1*(ty0 - ty1))*(srx0*srx1 
-                     + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) - crx1*sry1*(cry0*srz0 
-                     + crz0*srx0*sry0) + crx0*crz0*srx1) - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) 
-                     - crx1*cry1*(crz0*sry0 + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 
-                     + crx0*crx1*cry0*cry1);
-
-          float down0 = u1*(srx0*srx1 + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) 
-                      - crx1*sry1*(cry0*srz0 + crz0*srx0*sry0) + crx0*crz0*srx1) 
-                      - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) - crx1*cry1*(crz0*sry0 
-                      + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 + crx0*crx1*cry0*cry1) 
-                      - v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*crz1 - srx1*sry1*srz1) + (sry0*srz0 
+          double top0 = (srx1*(ty0 - ty1) + crx1*cry1*(tz0 - tz1) - crx1*sry1*(tx0 
+                      - tx1))*(v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*crz1 - srx1*sry1*srz1) + (sry0*srz0 
                       - cry0*crz0*srx0)*(crz1*sry1 + cry1*srx1*srz1) - crx0*crx1*crz0*srz1) 
-                      - u0*((crz0*sry0 + cry0*srx0*srz0)*(crz1*sry1 + cry1*srx1*srz1) + (cry0*crz0 
+                      + u0*((crz0*sry0 + cry0*srx0*srz0)*(crz1*sry1 + cry1*srx1*srz1) + (cry0*crz0 
                       - srx0*sry0*srz0)*(cry1*crz1 - srx1*sry1*srz1) + crx0*crx1*srz0*srz1) 
-                      - crx0*cry0*(crz1*sry1 + cry1*srx1*srz1) + crx0*sry0*(cry1*crz1 - srx1*sry1*srz1) 
-                      + crx1*srx0*srz1;
+                      + crx0*cry0*(crz1*sry1 + cry1*srx1*srz1) - crx0*sry0*(cry1*crz1 - srx1*sry1*srz1) 
+                      - crx1*srx0*srz1) - ((cry1*crz1 - srx1*sry1*srz1)*(tx0 - tx1) + (crz1*sry1 
+                      + cry1*srx1*srz1)*(tz0 - tz1) - crx1*srz1*(ty0 - ty1))*(srx0*srx1 
+                      + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) - crx1*sry1*(cry0*srz0 
+                      + crz0*srx0*sry0) + crx0*crz0*srx1) - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) 
+                      - crx1*cry1*(crz0*sry0 + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 
+                      + crx0*crx1*cry0*cry1);
+
+          double down0 = u1*(srx0*srx1 + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) 
+                       - crx1*sry1*(cry0*srz0 + crz0*srx0*sry0) + crx0*crz0*srx1) 
+                       - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) - crx1*cry1*(crz0*sry0 
+                       + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 + crx0*crx1*cry0*cry1) 
+                       - v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*crz1 - srx1*sry1*srz1) + (sry0*srz0 
+                       - cry0*crz0*srx0)*(crz1*sry1 + cry1*srx1*srz1) - crx0*crx1*crz0*srz1) 
+                       - u0*((crz0*sry0 + cry0*srx0*srz0)*(crz1*sry1 + cry1*srx1*srz1) + (cry0*crz0 
+                       - srx0*sry0*srz0)*(cry1*crz1 - srx1*sry1*srz1) + crx0*crx1*srz0*srz1) 
+                       - crx0*cry0*(crz1*sry1 + cry1*srx1*srz1) + crx0*sry0*(cry1*crz1 - srx1*sry1*srz1) 
+                       + crx1*srx0*srz1;
  
-          float top1 = (srx1*(ty0 - ty1) + crx1*cry1*(tz0 - tz1) - crx1*sry1*(tx0 
-                     - tx1))*(v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*srz1 + crz1*srx1*sry1) + (sry0*srz0 
-                     - cry0*crz0*srx0)*(sry1*srz1 - cry1*crz1*srx1) + crx0*crx1*crz0*crz1) 
-                     + u0*((crz0*sry0 + cry0*srx0*srz0)*(sry1*srz1 - cry1*crz1*srx1) + (cry0*crz0 
-                     - srx0*sry0*srz0)*(cry1*srz1 + crz1*srx1*sry1) - crx0*crx1*crz1*srz0) 
-                     + crx0*cry0*(sry1*srz1 - cry1*crz1*srx1) - crx0*sry0*(cry1*srz1 + crz1*srx1*sry1) 
-                     + crx1*crz1*srx0) - ((cry1*srz1 + crz1*srx1*sry1)*(tx0 - tx1) + (sry1*srz1 
-                     - cry1*crz1*srx1)*(tz0 - tz1) + crx1*crz1*(ty0 - ty1))*(srx0*srx1 
-                     + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) - crx1*sry1*(cry0*srz0 
-                     + crz0*srx0*sry0) + crx0*crz0*srx1) - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) 
-                     - crx1*cry1*(crz0*sry0 + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 
-                     + crx0*crx1*cry0*cry1);
-
-          float down1 = v1*(srx0*srx1 + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) 
-                      - crx1*sry1*(cry0*srz0 + crz0*srx0*sry0) + crx0*crz0*srx1) 
-                      - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) - crx1*cry1*(crz0*sry0 
-                      + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 + crx0*crx1*cry0*cry1) 
-                      - v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*srz1 + crz1*srx1*sry1) + (sry0*srz0 
+          double top1 = (srx1*(ty0 - ty1) + crx1*cry1*(tz0 - tz1) - crx1*sry1*(tx0 
+                      - tx1))*(v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*srz1 + crz1*srx1*sry1) + (sry0*srz0 
                       - cry0*crz0*srx0)*(sry1*srz1 - cry1*crz1*srx1) + crx0*crx1*crz0*crz1) 
-                      - u0*((crz0*sry0 + cry0*srx0*srz0)*(sry1*srz1 - cry1*crz1*srx1) + (cry0*crz0 
+                      + u0*((crz0*sry0 + cry0*srx0*srz0)*(sry1*srz1 - cry1*crz1*srx1) + (cry0*crz0 
                       - srx0*sry0*srz0)*(cry1*srz1 + crz1*srx1*sry1) - crx0*crx1*crz1*srz0) 
-                      - crx0*cry0*(sry1*srz1 - cry1*crz1*srx1) + crx0*sry0*(cry1*srz1 + crz1*srx1*sry1) 
-                      - crx1*crz1*srx0;
+                      + crx0*cry0*(sry1*srz1 - cry1*crz1*srx1) - crx0*sry0*(cry1*srz1 + crz1*srx1*sry1) 
+                      + crx1*crz1*srx0) - ((cry1*srz1 + crz1*srx1*sry1)*(tx0 - tx1) + (sry1*srz1 
+                      - cry1*crz1*srx1)*(tz0 - tz1) + crx1*crz1*(ty0 - ty1))*(srx0*srx1 
+                      + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) - crx1*sry1*(cry0*srz0 
+                      + crz0*srx0*sry0) + crx0*crz0*srx1) - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) 
+                      - crx1*cry1*(crz0*sry0 + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 
+                      + crx0*crx1*cry0*cry1);
 
-          float depth0 = top0 / down0;
-          float depth1 = top1 / down1;
+          double down1 = v1*(srx0*srx1 + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) 
+                       - crx1*sry1*(cry0*srz0 + crz0*srx0*sry0) + crx0*crz0*srx1) 
+                       - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) - crx1*cry1*(crz0*sry0 
+                       + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 + crx0*crx1*cry0*cry1) 
+                       - v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*srz1 + crz1*srx1*sry1) + (sry0*srz0 
+                       - cry0*crz0*srx0)*(sry1*srz1 - cry1*crz1*srx1) + crx0*crx1*crz0*crz1) 
+                       - u0*((crz0*sry0 + cry0*srx0*srz0)*(sry1*srz1 - cry1*crz1*srx1) + (cry0*crz0 
+                       - srx0*sry0*srz0)*(cry1*srz1 + crz1*srx1*sry1) - crx0*crx1*crz1*srz0) 
+                       - crx0*cry0*(sry1*srz1 - cry1*crz1*srx1) + crx0*sry0*(cry1*srz1 + crz1*srx1*sry1) 
+                       - crx1*crz1*srx0;
+
+          double depth0 = top0 / down0;
+          double depth1 = top1 / down1;
           if (depth0 > 0.5 && depth0 < 100 && depth1 > 0.5 && depth1 < 100) {
             ipr.s = (depth0 + depth1) / 2;
             ipr.v = 2;
@@ -377,20 +377,20 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
     for (int i = 0; i < ipRelationsNum; i++) {
       ipr = ipRelations->points[i];
 
-      float u0 = ipr.x;
-      float v0 = ipr.y;
-      float u1 = ipr.z;
-      float v1 = ipr.h;
+      double u0 = ipr.x;
+      double v0 = ipr.y;
+      double u1 = ipr.z;
+      double v1 = ipr.h;
 
-      float srx = sin(transform[0]);
-      float crx = cos(transform[0]);
-      float sry = sin(transform[1]);
-      float cry = cos(transform[1]);
-      float srz = sin(transform[2]);
-      float crz = cos(transform[2]);
-      float tx = transform[3];
-      float ty = transform[4];
-      float tz = transform[5];
+      double srx = sin(transform[0]);
+      double crx = cos(transform[0]);
+      double sry = sin(transform[1]);
+      double cry = cos(transform[1]);
+      double srz = sin(transform[2]);
+      double crz = cos(transform[2]);
+      double tx = transform[3];
+      double ty = transform[4];
+      double tz = transform[5];
 
       if (fabs(ipr.v) < 0.5) {
 
@@ -415,10 +415,10 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
         ipr2.v = u1*(sry*srz - cry*crz*srx) - v1*(crz*sry + cry*srx*srz) + u0*(u1*(cry*srz + crz*srx*sry) 
                - v1*(cry*crz - srx*sry*srz)) + v0*(crx*crz*u1 + crx*srz*v1);
 
-        float y2 = (ty - tz*v1)*(crz*sry + cry*srx*srz) - (tx - tz*u1)*(sry*srz - cry*crz*srx) 
-                - v0*(srx*(ty*u1 - tx*v1) + crx*crz*(tx - tz*u1) + crx*srz*(ty - tz*v1)) 
-                + u0*((ty - tz*v1)*(cry*crz - srx*sry*srz) - (tx - tz*u1)*(cry*srz + crz*srx*sry) 
-                + crx*sry*(ty*u1 - tx*v1)) - crx*cry*(ty*u1 - tx*v1);
+        double y2 = (ty - tz*v1)*(crz*sry + cry*srx*srz) - (tx - tz*u1)*(sry*srz - cry*crz*srx) 
+                  - v0*(srx*(ty*u1 - tx*v1) + crx*crz*(tx - tz*u1) + crx*srz*(ty - tz*v1)) 
+                  + u0*((ty - tz*v1)*(cry*crz - srx*sry*srz) - (tx - tz*u1)*(cry*srz + crz*srx*sry) 
+                  + crx*sry*(ty*u1 - tx*v1)) - crx*cry*(ty*u1 - tx*v1);
 
         if (ptNumNoDepthRec < 50 || iterCount < 25 || fabs(y2) < 2 * meanValueWithDepthRec / 10000) {
           double scale = 100;
@@ -439,7 +439,7 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
         }
       } else if (fabs(ipr.v - 1) < 0.5 || fabs(ipr.v - 2) < 0.5) {
 
-        float d0 = ipr.s;
+        double d0 = ipr.s;
 
         ipr3.x = d0*(cry*srz*crx + cry*u1*srx) - d0*u0*(sry*srz*crx + sry*u1*srx) 
                - d0*v0*(u1*crx - srz*srx);
@@ -454,8 +454,8 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
 
         ipr3.v = -u1;
 
-        float y3 = tx - tz*u1 + d0*(crz*sry - crx*cry*u1 + cry*srx*srz) - d0*v0*(crx*srz + srx*u1) 
-                 + d0*u0*(cry*crz + crx*sry*u1 - srx*sry*srz);
+        double y3 = tx - tz*u1 + d0*(crz*sry - crx*cry*u1 + cry*srx*srz) - d0*v0*(crx*srz + srx*u1) 
+                  + d0*u0*(cry*crz + crx*sry*u1 - srx*sry*srz);
 
         ipr4.x = d0*(cry*v1*srx - cry*crz*crx) + d0*u0*(crz*sry*crx - sry*v1*srx) 
                - d0*v0*(crz*srx + v1*crx);
@@ -470,8 +470,8 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
 
         ipr4.v = -v1;
 
-        float y4 = ty - tz*v1 - d0*(cry*crz*srx - sry*srz + crx*cry*v1) + d0*v0*(crx*crz - srx*v1) 
-                 + d0*u0*(cry*srz + crz*srx*sry + crx*sry*v1);
+        double y4 = ty - tz*v1 - d0*(cry*crz*srx - sry*srz + crx*cry*v1) + d0*v0*(crx*crz - srx*v1) 
+                  + d0*u0*(cry*srz + crz*srx*sry + crx*sry*v1);
 
         if (ptNumWithDepthRec < 50 || iterCount < 25 || 
             sqrt(y3 * y3 + y4 * y4) < 2 * meanValueWithDepthRec) {
@@ -538,12 +538,12 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
     imuInited = true;
   }
 
-  float rx, ry, rz;
+  double rx, ry, rz;
   accumulateRotation(transformSum[0], transformSum[1], transformSum[2], 
                     -transform[0], -transform[1], -transform[2], rx, ry, rz);
 
   if (imuPointerLast >= 0) {
-    float drx, dry, drz;
+    double drx, dry, drz;
     diffRotation(imuPitchCur, imuYawCur - imuYawInit, imuRollCur, rx, ry, rz, drx, dry, drz);
 
     transform[0] -= 0.1 * drx;
@@ -560,17 +560,17 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
                       -transform[0], -transform[1], -transform[2], rx, ry, rz);
   }
 
-  float x1 = cos(rz) * transform[3] - sin(rz) * transform[4];
-  float y1 = sin(rz) * transform[3] + cos(rz) * transform[4];
-  float z1 = transform[5];
+  double x1 = cos(rz) * transform[3] - sin(rz) * transform[4];
+  double y1 = sin(rz) * transform[3] + cos(rz) * transform[4];
+  double z1 = transform[5];
 
-  float x2 = x1;
-  float y2 = cos(rx) * y1 - sin(rx) * z1;
-  float z2 = sin(rx) * y1 + cos(rx) * z1;
+  double x2 = x1;
+  double y2 = cos(rx) * y1 - sin(rx) * z1;
+  double z2 = sin(rx) * y1 + cos(rx) * z1;
 
-  float tx = transformSum[3] - (cos(ry) * x2 + sin(ry) * z2);
-  float ty = transformSum[4] - y2;
-  float tz = transformSum[5] - (-sin(ry) * x2 + cos(ry) * z2);
+  double tx = transformSum[3] - (cos(ry) * x2 + sin(ry) * z2);
+  double ty = transformSum[4] - y2;
+  double tz = transformSum[5] - (-sin(ry) * x2 + cos(ry) * z2);
 
   transformSum[0] = rx;
   transformSum[1] = ry;
@@ -742,7 +742,7 @@ void imuDataHandler(const sensor_msgs::Imu::ConstPtr& imuData)
 
   imuPointerLast = (imuPointerLast + 1) % imuQueLength;
 
-  imuTime[imuPointerLast] = imuData->header.stamp.toSec();
+  imuTime[imuPointerLast] = imuData->header.stamp.toSec() - 0.1068;
   imuRoll[imuPointerLast] = roll;
   imuPitch[imuPointerLast] = pitch;
   imuYaw[imuPointerLast] = yaw;
