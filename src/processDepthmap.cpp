@@ -13,19 +13,28 @@
 
 const double PI = 3.1415926;
 
-const int keepSyncCloudNum = 20;
-double syncCloudTime[keepSyncCloudNum] = {0};
-pcl::PointCloud<pcl::PointXYZ>::Ptr syncCloudArray[keepSyncCloudNum];
-int syncCloudInd = -1;
-int cloudRegInd = 0;
+const int keepVoDataNum = 30;
+double voDataTime[keepVoDataNum] = {0};
+double voRx[keepVoDataNum] = {0};
+double voRy[keepVoDataNum] = {0};
+double voRz[keepVoDataNum] = {0};
+double voTx[keepVoDataNum] = {0};
+double voTy[keepVoDataNum] = {0};
+double voTz[keepVoDataNum] = {0};
+int voDataInd = -1;
+int voRegInd = 0;
 
 pcl::PointCloud<pcl::PointXYZI>::Ptr depthCloud(new pcl::PointCloud<pcl::PointXYZI>());
+pcl::PointCloud<pcl::PointXYZ>::Ptr syncCloud(new pcl::PointCloud<pcl::PointXYZ>());
 pcl::PointCloud<pcl::PointXYZI>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZI>());
 pcl::PointCloud<pcl::PointXYZI>::Ptr tempCloud2(new pcl::PointCloud<pcl::PointXYZI>());
 
 double timeRec = 0;
 double rxRec = 0, ryRec = 0, rzRec = 0;
 double txRec = 0, tyRec = 0, tzRec = 0;
+
+int startCount = -1;
+const int startSkipNum = 5;
 
 ros::Publisher *depthCloudPubPointer = NULL;
 
@@ -59,17 +68,26 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
   tyRec = voData->pose.pose.position.y;
   tzRec = voData->pose.pose.position.z;
 
-  float x1 = cos(yaw) * tx + sin(yaw) * tz;
-  float y1 = ty;
-  float z1 = -sin(yaw) * tx + cos(yaw) * tz;
+  double x1 = cos(yaw) * tx + sin(yaw) * tz;
+  double y1 = ty;
+  double z1 = -sin(yaw) * tx + cos(yaw) * tz;
 
-  float x2 = x1;
-  float y2 = cos(pitch) * y1 - sin(pitch) * z1;
-  float z2 = sin(pitch) * y1 + cos(pitch) * z1;
+  double x2 = x1;
+  double y2 = cos(pitch) * y1 - sin(pitch) * z1;
+  double z2 = sin(pitch) * y1 + cos(pitch) * z1;
 
   tx = cos(roll) * x2 + sin(roll) * y2;
   ty = -sin(roll) * x2 + cos(roll) * y2;
   tz = z2;
+
+  voDataInd = (voDataInd + 1) % keepVoDataNum;
+  voDataTime[voDataInd] = time;
+  voRx[voDataInd] = rx;
+  voRy[voDataInd] = ry;
+  voRz[voDataInd] = rz;
+  voTx[voDataInd] = tx;
+  voTy[voDataInd] = ty;
+  voTz[voDataInd] = tz;
 
   double cosrx = cos(rx);
   double sinrx = sin(rx);
@@ -78,7 +96,7 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
   double cosrz = cos(rz);
   double sinrz = sin(rz);
 
-  if (time - timeRec < 0.5 && syncCloudInd >= 0) {
+  if (time - timeRec < 0.5) {
     pcl::PointXYZI point;
     tempCloud->clear();
     double x1, y1, z1, x2, y2, z2;
@@ -102,57 +120,6 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
       if (fabs(point.x / point.z) < 2 && fabs(point.y / point.z) < 1 && point.z > 0.5 && pointDis < 15) {
         tempCloud->push_back(point);
       }
-    }
-
-    while (syncCloudTime[cloudRegInd] <= time && cloudRegInd != (syncCloudInd + 1) % keepSyncCloudNum) {
-      double scale = (time - syncCloudTime[cloudRegInd]) / (time - timeRec);
-      if (scale > 1) {
-        scale = 1;
-      } else if (scale < 0) {
-        scale = 0;
-      }
-
-      double rx2 = rx * scale;
-      double ry2 = ry * scale;
-      double rz2 = rz * scale;
-
-      double tx2 = tx * scale;
-      double ty2 = ty * scale;
-      double tz2 = tz * scale;
-
-      double cosrx2 = cos(rx2);
-      double sinrx2 = sin(rx2);
-      double cosry2 = cos(ry2);
-      double sinry2 = sin(ry2);
-      double cosrz2 = cos(rz2);
-      double sinrz2 = sin(rz2);
-
-      pcl::PointCloud<pcl::PointXYZ>::Ptr syncCloudPointer = syncCloudArray[cloudRegInd];
-      int syncCloudNum = syncCloudPointer->points.size();
-      for (int i = 0; i < syncCloudNum; i++) {
-        point.x = syncCloudPointer->points[i].x;
-        point.y = syncCloudPointer->points[i].y;
-        point.z = syncCloudPointer->points[i].z;
-
-        x1 = cosry2 * point.x - sinry2 * point.z;
-        y1 = point.y;
-        z1 = sinry2 * point.x + cosry2 * point.z;
-
-        x2 = x1;
-        y2 = cosrx2 * y1 + sinrx2 * z1;
-        z2 = -sinrx2 * y1 + cosrx2 * z1;
-
-        point.x = cosrz2 * x2 + sinrz2 * y2 - tx2;
-        point.y = -sinrz2 * x2 + cosrz2 * y2 - ty2;
-        point.z = z2 - tz2;
-
-        double pointDis = sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
-        if (fabs(point.x / point.z) < 2 && fabs(point.y / point.z) < 1.5 && point.z > 0.5 && 
-            pointDis < 15) {
-          tempCloud->push_back(point);
-        }
-      }
-      cloudRegInd = (cloudRegInd + 1) % keepSyncCloudNum;
     }
 
     depthCloud->clear();
@@ -201,24 +168,117 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 
 void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
 {
+  if (startCount < startSkipNum) {
+    startCount++;
+    return;
+  }
+
   double time = syncCloud2->header.stamp.toSec();
 
-  syncCloudInd = (syncCloudInd + 1) % keepSyncCloudNum;
-  syncCloudTime[syncCloudInd] = time;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr syncCloudPointer = syncCloudArray[syncCloudInd];
-  syncCloudPointer->clear();
-  pcl::fromROSMsg(*syncCloud2, *syncCloudPointer);
+  syncCloud->clear();
+  pcl::fromROSMsg(*syncCloud2, *syncCloud);
+
+  double scale = 0;
+  int voPreInd = keepVoDataNum - 1;
+  if (voDataInd >= 0) {
+    while (voDataTime[voRegInd] <= time && voRegInd != voDataInd) {
+      voRegInd = (voRegInd + 1) % keepVoDataNum;
+    }
+
+    voPreInd = (voRegInd + keepVoDataNum - 1) % keepVoDataNum;
+    double voTimePre = voDataTime[voPreInd];
+    double voTimeReg = voDataTime[voRegInd];
+
+    if (voTimeReg - voTimePre < 0.5) {
+      double scale =  (voTimeReg - time) / (voTimeReg - voTimePre);
+      if (scale > 1) {
+        scale = 1;
+      } else if (scale < 0) {
+        scale = 0;
+      }
+    }
+  }
+
+  double rx2 = voRx[voRegInd] * scale;
+  double ry2 = voRy[voRegInd] * scale;
+  double rz2 = voRz[voRegInd] * scale;
+
+  double tx2 = voTx[voRegInd] * scale;
+  double ty2 = voTy[voRegInd] * scale;
+  double tz2 = voTz[voRegInd] * scale;
+
+  double cosrx2 = cos(rx2);
+  double sinrx2 = sin(rx2);
+  double cosry2 = cos(ry2);
+  double sinry2 = sin(ry2);
+  double cosrz2 = cos(rz2);
+  double sinrz2 = sin(rz2);
+
+  pcl::PointXYZI point;
+  double x1, y1, z1, x2, y2, z2;
+  int syncCloudNum = syncCloud->points.size();
+  for (int i = 0; i < syncCloudNum; i++) {
+    point.x = syncCloud->points[i].x;
+    point.y = syncCloud->points[i].y;
+    point.z = syncCloud->points[i].z;
+
+    x1 = cosry2 * point.x - sinry2 * point.z;
+    y1 = point.y;
+    z1 = sinry2 * point.x + cosry2 * point.z;
+
+    x2 = x1;
+    y2 = cosrx2 * y1 + sinrx2 * z1;
+    z2 = -sinrx2 * y1 + cosrx2 * z1;
+
+    point.x = cosrz2 * x2 + sinrz2 * y2 - tx2;
+    point.y = -sinrz2 * x2 + cosrz2 * y2 - ty2;
+    point.z = z2 - tz2;
+
+    if (voDataInd >= 0) {
+      int voAftInd = (voRegInd + 1) % keepVoDataNum;
+      while (voAftInd != (voDataInd + 1) % keepVoDataNum) {
+        double rx = voRx[voAftInd];
+        double ry = voRy[voAftInd];
+        double rz = voRz[voAftInd];
+
+        double tx = voTx[voAftInd];
+        double ty = voTy[voAftInd];
+        double tz = voTz[voAftInd];
+
+        double cosrx = cos(rx);
+        double sinrx = sin(rx);
+        double cosry = cos(ry);
+        double sinry = sin(ry);
+        double cosrz = cos(rz);
+        double sinrz = sin(rz);
+
+        x1 = cosry * point.x - sinry * point.z;
+        y1 = point.y;
+        z1 = sinry * point.x + cosry * point.z;
+
+        x2 = x1;
+        y2 = cosrx * y1 + sinrx * z1;
+        z2 = -sinrx * y1 + cosrx * z1;
+
+        point.x = cosrz * x2 + sinrz * y2 - tx;
+        point.y = -sinrz * x2 + cosrz * y2 - ty;
+        point.z = z2 - tz;
+
+        voAftInd = (voAftInd + 1) % keepVoDataNum;
+      }
+    }
+
+    double pointDis = sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
+    if (fabs(point.x / point.z) < 2 && fabs(point.y / point.z) < 1.5 && point.z > 0.5 && pointDis < 15) {
+      depthCloud->push_back(point);
+    }
+  }
 }
 
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "processDepthmap");
   ros::NodeHandle nh;
-
-  for (int i = 0; i < keepSyncCloudNum; i++) {
-    pcl::PointCloud<pcl::PointXYZ>::Ptr syncCloudTemp(new pcl::PointCloud<pcl::PointXYZ>());
-    syncCloudArray[i] = syncCloudTemp;
-  }
 
   ros::Subscriber voDataSub = nh.subscribe<nav_msgs::Odometry> ("/cam_to_init", 5, voDataHandler);
 

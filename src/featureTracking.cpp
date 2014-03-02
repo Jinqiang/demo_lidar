@@ -68,7 +68,7 @@ sensor_msgs::CvBridge bridge;
 void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData) 
 {
   timeLast = timeCur;
-  timeCur = imageData->header.stamp.toSec();
+  timeCur = imageData->header.stamp.toSec() - 0.1163;
 
   IplImage *imageTemp = imageLast;
   imageLast = imageCur;
@@ -231,3 +231,4 @@ int main(int argc, char** argv)
 
   return 0;
 }
+
