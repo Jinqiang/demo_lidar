@@ -23,8 +23,7 @@ const int showSkipNum = 2;
 const int showDSRate = 2;
 CvSize showSize = cvSize(imageWidth / showDSRate, imageHeight / showDSRate);
 
-IplImage *imageShowMono = cvCreateImage(showSize, IPL_DEPTH_8U, 1);
-IplImage *imageShowRGB = cvCreateImage(showSize, IPL_DEPTH_8U, 3);
+IplImage *imageShow = cvCreateImage(showSize, IPL_DEPTH_8U, 1);
 
 CvMat kMat = cvMat(3, 3, CV_64FC1, kImage);
 CvMat dMat = cvMat(4, 1, CV_64FC1, dImage);
@@ -63,7 +62,7 @@ pcl::PointCloud<ImagePoint>::Ptr imagePointsLast(new pcl::PointCloud<ImagePoint>
 
 ros::Publisher *imagePointsLastPubPointer;
 ros::Publisher *imageShowPubPointer;
-sensor_msgs::CvBridge bridge;
+cv_bridge::CvImage bridge;
 
 void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData) 
 {
@@ -182,22 +181,19 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
   meanShiftX /= totalFeatureNum;
   meanShiftY /= totalFeatureNum;
 
-  imagePointsLast->header.stamp = ros::Time().fromSec(timeLast);
   sensor_msgs::PointCloud2 imagePointsLast2;
   pcl::toROSMsg(*imagePointsLast, imagePointsLast2);
+  imagePointsLast2.header.stamp = ros::Time().fromSec(timeLast);
   imagePointsLastPubPointer->publish(imagePointsLast2);
 
   showCount = (showCount + 1) % (showSkipNum + 1);
   if (showCount == showSkipNum) {
-    cvResize(imageLast, imageShowMono);
-    cvCvtColor(imageShowMono, imageShowRGB, CV_GRAY2RGB);
+    cvResize(imageLast, imageShow);
 
-    /*for(int i = 0; i < totalFeatureNum; i++) {
-      cvCircle(imageShowRGB, cvPoint(featuresCur[i].x / showDSRate, featuresCur[i].y / showDSRate), 
-               1, CV_RGB(0, 0, 255), 2);
-    }*/
-
-    sensor_msgs::Image::Ptr imageShowPointer = bridge.cvToImgMsg(imageShowRGB, "bgr8");
+    Mat imageShowMat(imageShow);
+    bridge.image = imageShowMat;
+    bridge.encoding = "mono8";
+    sensor_msgs::Image::Ptr imageShowPointer = bridge.toImageMsg();
     imageShowPubPointer->publish(imageShowPointer);
   }
 }

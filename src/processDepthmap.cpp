@@ -156,10 +156,10 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
       tempCloud2->points[i].intensity = 10;
     }
 
-    tempCloud2->header.frame_id = "camera2";
-    tempCloud2->header.stamp = voData->header.stamp;
     sensor_msgs::PointCloud2 depthCloud2;
     pcl::toROSMsg(*tempCloud2, depthCloud2);
+    depthCloud2.header.frame_id = "camera2";
+    depthCloud2.header.stamp = voData->header.stamp;
     depthCloudPubPointer->publish(depthCloud2);
   }
 
