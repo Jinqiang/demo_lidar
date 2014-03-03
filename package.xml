@@ -1,0 +1,24 @@
+<package>
+  <name>demo_lidar</name>
+  <version>0.0.1</version>
+  <description>Depth Enhanced Monocular Odometry (camera and lidar version)</description>
+  <maintainer email="zhangji@cmu.edu">Ji Zhang</maintainer>
+  <url>http://wiki.ros.org/demo_lidar</url>
+  <license>BSD</license>
+
+  <author>Ji Zhang</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>pcl_ros</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>pcl_ros</run_depend>
+</package>
