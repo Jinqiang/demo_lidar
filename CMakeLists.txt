@@ -44,5 +44,3 @@ rosbuild_add_executable(processDepthmap src/processDepthmap.cpp)
 rosbuild_add_executable(stackDepthPoint src/stackDepthPoint.cpp)
 rosbuild_add_executable(transformMaintenance src/transformMaintenance.cpp)
 rosbuild_add_executable(registerPointCloud src/registerPointCloud.cpp)
-
-target_link_libraries(bundleAdjust ${EIGEN3_INCLUDE_DIR})
