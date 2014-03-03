@@ -73,9 +73,11 @@ ros::Publisher *imagePointsProjPubPointer = NULL;
 ros::Publisher *imageShowPubPointer;
 
 const int showDSRate = 2;
+const int imagePixelNum = imageHeight / showDSRate * imageWidth / showDSRate;
+CvSize imageSize = cvSize(imageWidth / showDSRate, imageHeight / showDSRate);
 
-IplImage *image;
-sensor_msgs::CvBridge bridge;
+IplImage *image = cvCreateImage(imageSize, IPL_DEPTH_8U, 3);
+cv_bridge::CvImage bridge;
 
 void accumulateRotation(double cx, double cy, double cz, double lx, double ly, double lz, 
                         double &ox, double &oy, double &oz)
@@ -700,16 +702,16 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
     }
   }
 
-  depthPointsSend->header.frame_id = "camera2";
-  depthPointsSend->header.stamp = ros::Time().fromSec(imagePointsLastTime);
   sensor_msgs::PointCloud2 depthPoints2;
   pcl::toROSMsg(*depthPointsSend, depthPoints2);
+  depthPoints2.header.frame_id = "camera2";
+  depthPoints2.header.stamp = ros::Time().fromSec(imagePointsLastTime);
   depthPointsPubPointer->publish(depthPoints2);
 
-  imagePointsProj->header.frame_id = "camera2";
-  imagePointsProj->header.stamp = ros::Time().fromSec(imagePointsLastTime);
   sensor_msgs::PointCloud2 imagePointsProj2;
   pcl::toROSMsg(*imagePointsProj, imagePointsProj2);
+  imagePointsProj2.header.frame_id = "camera2";
+  imagePointsProj2.header.stamp = ros::Time().fromSec(imagePointsLastTime);
   imagePointsProjPubPointer->publish(imagePointsProj2);
 }
 
@@ -750,7 +752,11 @@ void imuDataHandler(const sensor_msgs::Imu::ConstPtr& imuData)
 
 void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData) 
 {
-  image = bridge.imgMsgToCv(imageData, "bgr8");
+  for (int i = 0; i < imagePixelNum; i++) {
+    image->imageData[3 * i + 1] = (char)imageData->data[i];
+    image->imageData[3 * i + 2] = (char)imageData->data[i];
+    image->imageData[3 * i + 3] = (char)imageData->data[i];
+  }
 
   int ipRelationsNum = ipRelations->points.size();
   for (int i = 0; i < ipRelationsNum; i++) {
@@ -769,8 +775,11 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
     }
   }
 
-  sensor_msgs::Image::Ptr imageShow = bridge.cvToImgMsg(image, "bgr8");
-  imageShowPubPointer->publish(imageShow);
+  cv::Mat imageMat(image);
+  bridge.image = imageMat;
+  bridge.encoding = "bgr8";
+  sensor_msgs::Image::Ptr imagePointer = bridge.toImageMsg();
+  imageShowPubPointer->publish(imagePointer);
 }
 
 int main(int argc, char** argv)

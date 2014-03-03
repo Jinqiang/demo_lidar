@@ -43,11 +43,11 @@ void depthPointsHandler(const sensor_msgs::PointCloud2ConstPtr& depthPoints2)
       *depthPointsStacked += *depthPoints[i];
     }
 
-    depthPointsStacked->header.frame_id = "camera";
-    depthPointsStacked->header.stamp = depthPoints2->header.stamp;
-    sensor_msgs::PointCloud2 depthPoints2;
-    pcl::toROSMsg(*depthPointsStacked, depthPoints2);
-    depthPointsPubPointer->publish(depthPoints2);
+    sensor_msgs::PointCloud2 depthPoints3;
+    pcl::toROSMsg(*depthPointsStacked, depthPoints3);
+    depthPoints3.header.frame_id = "camera";
+    depthPoints3.header.stamp = depthPoints2->header.stamp;
+    depthPointsPubPointer->publish(depthPoints3);
 
     lastPubTime = depthPointsTime[keyframeNum - 1];
   }

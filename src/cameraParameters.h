@@ -11,7 +11,7 @@
 #include "opencv2/contrib/contrib.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
-#include <cv_bridge/CvBridge.h>
+#include <cv_bridge/cv_bridge.h>
 
 const int imageWidth = 744;
 const int imageHeight = 480;

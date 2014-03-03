@@ -168,10 +168,10 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
   downSizeFilter.setLeafSize(0.2, 0.2, 0.2);
   downSizeFilter.filter(*surroundCloud);
 
-  surroundCloud->header.frame_id = "/camera_init";
-  surroundCloud->header.stamp = syncCloud2->header.stamp;
   sensor_msgs::PointCloud2 surroundCloud2;
   pcl::toROSMsg(*surroundCloud, surroundCloud2);
+  surroundCloud2.header.frame_id = "/camera_init";
+  surroundCloud2.header.stamp = syncCloud2->header.stamp;
   surroundCloudPubPointer->publish(surroundCloud2);
 }
 
