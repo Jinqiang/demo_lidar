@@ -73,11 +73,6 @@ ros::Publisher *imagePointsProjPubPointer = NULL;
 ros::Publisher *imageShowPubPointer;
 
 const int showDSRate = 2;
-const int imagePixelNum = imageHeight / showDSRate * imageWidth / showDSRate;
-CvSize imageSize = cvSize(imageWidth / showDSRate, imageHeight / showDSRate);
-
-IplImage *image = cvCreateImage(imageSize, IPL_DEPTH_8U, 3);
-cv_bridge::CvImage bridge;
 
 void accumulateRotation(double cx, double cy, double cz, double lx, double ly, double lz, 
                         double &ox, double &oy, double &oz)
@@ -752,33 +747,26 @@ void imuDataHandler(const sensor_msgs::Imu::ConstPtr& imuData)
 
 void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData) 
 {
-  for (int i = 0; i < imagePixelNum; i++) {
-    image->imageData[3 * i + 1] = (char)imageData->data[i];
-    image->imageData[3 * i + 2] = (char)imageData->data[i];
-    image->imageData[3 * i + 3] = (char)imageData->data[i];
-  }
+  cv_bridge::CvImagePtr bridge = cv_bridge::toCvCopy(imageData, "bgr8");
 
   int ipRelationsNum = ipRelations->points.size();
   for (int i = 0; i < ipRelationsNum; i++) {
     if (fabs(ipRelations->points[i].v) < 0.5) {
-      cvCircle(image, cvPoint((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
-               (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0, 0, 255), 2);
+      cv::circle(bridge->image, cv::Point((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
+                (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(255, 0, 0), 2);
     } else if (fabs(ipRelations->points[i].v - 1) < 0.5) {
-      cvCircle(image, cvPoint((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
-               (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0, 255, 0), 2);
+      cv::circle(bridge->image, cv::Point((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
+                (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0, 255, 0), 2);
     } else if (fabs(ipRelations->points[i].v - 2) < 0.5) {
-      cvCircle(image, cvPoint((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
-               (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0,255,0), 2);
-    } else {
-      cvCircle(image, cvPoint((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
-               (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(255, 0, 0), 2);
-    }
+      cv::circle(bridge->image, cv::Point((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
+                (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0, 0, 255), 2);
+    } /*else {
+      cv::circle(bridge->image, cv::Point((kImage[2] - ipRelations->points[i].z * kImage[0]) / showDSRate,
+                (kImage[5] - ipRelations->points[i].h * kImage[4]) / showDSRate), 1, CV_RGB(0, 0, 0), 2);
+    }*/
   }
 
-  cv::Mat imageMat(image);
-  bridge.image = imageMat;
-  bridge.encoding = "bgr8";
-  sensor_msgs::Image::Ptr imagePointer = bridge.toImageMsg();
+  sensor_msgs::Image::Ptr imagePointer = bridge->toImageMsg();
   imageShowPubPointer->publish(imagePointer);
 }
 
