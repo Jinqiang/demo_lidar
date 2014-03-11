@@ -17,6 +17,7 @@ CvSize imgSize = cvSize(imageWidth, imageHeight);
 
 IplImage *imageCur = cvCreateImage(imgSize, IPL_DEPTH_8U, 1);
 IplImage *imageLast = cvCreateImage(imgSize, IPL_DEPTH_8U, 1);
+IplImage *harrisLast = cvCreateImage(imgSize, IPL_DEPTH_32F, 1);
 
 int showCount = 0;
 const int showSkipNum = 2;
@@ -82,6 +83,8 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
   //cvEqualizeHist(imageCur, imageCur);
   cvReleaseImage(&t);
 
+  cvCornerHarris(imageLast, harrisLast, 7);
+
   CvPoint2D32f *featuresTemp = featuresLast;
   featuresLast = featuresCur;
   featuresCur = featuresTemp;
@@ -111,14 +114,31 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
         cvGoodFeaturesToTrack(imageLast, imageEig, imageTmp, featuresLast + totalFeatureNum,
                               &numToFind, 0.1, 5.0, NULL, 3, 1, 0.04);
 
+        int numFound = 0;
         for(int k = 0; k < numToFind; k++) {
           featuresLast[totalFeatureNum + k].x += subregionLeft;
           featuresLast[totalFeatureNum + k].y += subregionTop;
-          featuresInd[totalFeatureNum + k] = featuresIndFromStart;
-          featuresIndFromStart++;
+
+          int xInd = (int)featuresLast[totalFeatureNum + k].x;
+          if (featuresLast[totalFeatureNum + k].x - xInd > 0.5) {
+            xInd++;
+          }
+          int yInd = (int)featuresLast[totalFeatureNum + k].y;
+          if (featuresLast[totalFeatureNum + k].y - yInd > 0.5) {
+            yInd++;
+          }
+
+          if (((float*)(harrisLast->imageData + harrisLast->widthStep * yInd))[xInd] > 1e-7) {
+            featuresLast[totalFeatureNum + numFound].x = featuresLast[totalFeatureNum + k].x;
+            featuresLast[totalFeatureNum + numFound].y = featuresLast[totalFeatureNum + k].y;
+            featuresInd[totalFeatureNum + numFound] = featuresIndFromStart;
+
+            numFound++;
+            featuresIndFromStart++;
+          }
         }
-        totalFeatureNum += numToFind;
-        subregionFeatureNum[ind] += numToFind;
+        totalFeatureNum += numFound;
+        subregionFeatureNum[ind] += numFound;
 
         cvResetImageROI(imageLast);
       }
@@ -227,4 +247,3 @@ int main(int argc, char** argv)
 
   return 0;
 }
-
