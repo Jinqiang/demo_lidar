@@ -4,7 +4,7 @@
   <description>Depth Enhanced Monocular Odometry (camera and lidar version)</description>
   <maintainer email="zhangji@cmu.edu">Ji Zhang</maintainer>
   <url>http://wiki.ros.org/demo_lidar</url>
-  <license>BSD</license>
+  <license>LGPL</license>
 
   <author>Ji Zhang</author>
 
