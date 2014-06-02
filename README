@@ -1,6 +1,6 @@
 Depth Enhanced Monocular Odometry (Demo) is a monocular visual odometry method assisted by depth maps, and optionally an IMU. The program contains three major nodes. The "featureTracking" node extracts and tracks Harris corners by Kanade Lucas Tomasi (KLT) tracker provided in the OpenCV library. The "visualOdometry" node takes the tracked features and estimates frame to frame motion. Features associated with depth (either from the depth map or triangulated from previously estimated camera motion) are used to solve the 6DOF motion, and features without depth help solve orientation. The "bundleAdjust" node refines the estimated motion with bundle adjustment. It processes sequences of images using Incremental Smoothing and Mapping (iSAM) open source library. 
 
-The program is tested on ROS Hydro, on a laptop computer with 2.5 GHz quad cores and 6 Gib memory. This version uses a camera with point cloud perceived by a 3D lidar.
+The program is tested on ROS Indigo, on a laptop computer with 2.5 GHz quad cores and 6 Gib memory. This version uses a camera with point cloud perceived by a 3D lidar.
 
 Wiki Webpage: http://wiki.ros.org/demo_lidar
 
