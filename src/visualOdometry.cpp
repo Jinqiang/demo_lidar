@@ -609,19 +609,23 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
       startPointsCur->push_back(startPointsLast->points[j]);
       startTransCur->push_back(startTransLast->points[j]);
 
-      double ipz = (*ipDepthLast)[j];
-      double ipx = imagePointsLast->points[j].u * ipz;
-      double ipy = imagePointsLast->points[j].v * ipz;
+      if ((*ipDepthLast)[j] > 0) {
+        double ipz = (*ipDepthLast)[j];
+        double ipx = imagePointsLast->points[j].u * ipz;
+        double ipy = imagePointsLast->points[j].v * ipz;
 
-      x1 = cry * ipx + sry * ipz;
-      y1 = ipy;
-      z1 = -sry * ipx + cry * ipz;
+        x1 = cry * ipx + sry * ipz;
+        y1 = ipy;
+        z1 = -sry * ipx + cry * ipz;
 
-      x2 = x1;
-      y2 = crx * y1 - srx * z1;
-      z2 = srx * y1 + crx * z1;
+        x2 = x1;
+        y2 = crx * y1 - srx * z1;
+        z2 = srx * y1 + crx * z1;
 
-      ipDepthCur->push_back(z2 + transform[5]);
+        ipDepthCur->push_back(z2 + transform[5]);
+      } else {
+        ipDepthCur->push_back(-1);
+      }
     } else {
       startPointsCur->push_back(imagePointsCur->points[i]);
       startTransCur->push_back(spc);
