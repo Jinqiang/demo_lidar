@@ -31,6 +31,9 @@ pcl::PointCloud<DepthPoint>::Ptr depthPointsSend(new pcl::PointCloud<DepthPoint>
 std::vector<int> ipInd;
 std::vector<float> ipy2;
 
+std::vector<float>* ipDepthCur = new std::vector<float>();
+std::vector<float>* ipDepthLast = new std::vector<float>();
+
 double imagePointsCurTime;
 double imagePointsLastTime;
 
@@ -179,6 +182,10 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
   startTransLast = startTransCur;
   startTransCur = startTransTemp;
 
+  std::vector<float>* ipDepthTemp = ipDepthLast;
+  ipDepthLast = ipDepthCur;
+  ipDepthCur = ipDepthTemp;
+
   int j = 0;
   pcl::PointXYZI ips;
   pcl::PointXYZHSV ipr;
@@ -290,66 +297,63 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
           double ty1 = -transformSum[4];
           double tz1 = -transformSum[5];
 
-          double top0 = (srx1*(ty0 - ty1) + crx1*cry1*(tz0 - tz1) - crx1*sry1*(tx0 
-                      - tx1))*(v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*crz1 - srx1*sry1*srz1) + (sry0*srz0 
-                      - cry0*crz0*srx0)*(crz1*sry1 + cry1*srx1*srz1) - crx0*crx1*crz0*srz1) 
-                      + u0*((crz0*sry0 + cry0*srx0*srz0)*(crz1*sry1 + cry1*srx1*srz1) + (cry0*crz0 
-                      - srx0*sry0*srz0)*(cry1*crz1 - srx1*sry1*srz1) + crx0*crx1*srz0*srz1) 
-                      + crx0*cry0*(crz1*sry1 + cry1*srx1*srz1) - crx0*sry0*(cry1*crz1 - srx1*sry1*srz1) 
-                      - crx1*srx0*srz1) - ((cry1*crz1 - srx1*sry1*srz1)*(tx0 - tx1) + (crz1*sry1 
-                      + cry1*srx1*srz1)*(tz0 - tz1) - crx1*srz1*(ty0 - ty1))*(srx0*srx1 
-                      + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) - crx1*sry1*(cry0*srz0 
-                      + crz0*srx0*sry0) + crx0*crz0*srx1) - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) 
-                      - crx1*cry1*(crz0*sry0 + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 
-                      + crx0*crx1*cry0*cry1);
+          double x1 = crz0 * u0 + srz0 * v0;
+          double y1 = -srz0 * u0 + crz0 * v0;
+          double z1 = 1;
 
-          double down0 = u1*(srx0*srx1 + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) 
-                       - crx1*sry1*(cry0*srz0 + crz0*srx0*sry0) + crx0*crz0*srx1) 
-                       - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) - crx1*cry1*(crz0*sry0 
-                       + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 + crx0*crx1*cry0*cry1) 
-                       - v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*crz1 - srx1*sry1*srz1) + (sry0*srz0 
-                       - cry0*crz0*srx0)*(crz1*sry1 + cry1*srx1*srz1) - crx0*crx1*crz0*srz1) 
-                       - u0*((crz0*sry0 + cry0*srx0*srz0)*(crz1*sry1 + cry1*srx1*srz1) + (cry0*crz0 
-                       - srx0*sry0*srz0)*(cry1*crz1 - srx1*sry1*srz1) + crx0*crx1*srz0*srz1) 
-                       - crx0*cry0*(crz1*sry1 + cry1*srx1*srz1) + crx0*sry0*(cry1*crz1 - srx1*sry1*srz1) 
-                       + crx1*srx0*srz1;
- 
-          double top1 = (srx1*(ty0 - ty1) + crx1*cry1*(tz0 - tz1) - crx1*sry1*(tx0 
-                      - tx1))*(v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*srz1 + crz1*srx1*sry1) + (sry0*srz0 
-                      - cry0*crz0*srx0)*(sry1*srz1 - cry1*crz1*srx1) + crx0*crx1*crz0*crz1) 
-                      + u0*((crz0*sry0 + cry0*srx0*srz0)*(sry1*srz1 - cry1*crz1*srx1) + (cry0*crz0 
-                      - srx0*sry0*srz0)*(cry1*srz1 + crz1*srx1*sry1) - crx0*crx1*crz1*srz0) 
-                      + crx0*cry0*(sry1*srz1 - cry1*crz1*srx1) - crx0*sry0*(cry1*srz1 + crz1*srx1*sry1) 
-                      + crx1*crz1*srx0) - ((cry1*srz1 + crz1*srx1*sry1)*(tx0 - tx1) + (sry1*srz1 
-                      - cry1*crz1*srx1)*(tz0 - tz1) + crx1*crz1*(ty0 - ty1))*(srx0*srx1 
-                      + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) - crx1*sry1*(cry0*srz0 
-                      + crz0*srx0*sry0) + crx0*crz0*srx1) - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) 
-                      - crx1*cry1*(crz0*sry0 + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 
-                      + crx0*crx1*cry0*cry1);
+          double x2 = x1;
+          double y2 = crx0 * y1 + srx0 * z1;
+          double z2 = -srx0 * y1 + crx0 * z1;
 
-          double down1 = v1*(srx0*srx1 + v0*(crx1*cry1*(sry0*srz0 - cry0*crz0*srx0) 
-                       - crx1*sry1*(cry0*srz0 + crz0*srx0*sry0) + crx0*crz0*srx1) 
-                       - u0*(crx1*sry1*(cry0*crz0 - srx0*sry0*srz0) - crx1*cry1*(crz0*sry0 
-                       + cry0*srx0*srz0) + crx0*srx1*srz0) + crx0*crx1*sry0*sry1 + crx0*crx1*cry0*cry1) 
-                       - v0*((cry0*srz0 + crz0*srx0*sry0)*(cry1*srz1 + crz1*srx1*sry1) + (sry0*srz0 
-                       - cry0*crz0*srx0)*(sry1*srz1 - cry1*crz1*srx1) + crx0*crx1*crz0*crz1) 
-                       - u0*((crz0*sry0 + cry0*srx0*srz0)*(sry1*srz1 - cry1*crz1*srx1) + (cry0*crz0 
-                       - srx0*sry0*srz0)*(cry1*srz1 + crz1*srx1*sry1) - crx0*crx1*crz1*srz0) 
-                       - crx0*cry0*(sry1*srz1 - cry1*crz1*srx1) + crx0*sry0*(cry1*srz1 + crz1*srx1*sry1) 
-                       - crx1*crz1*srx0;
+          double x3 = cry0 * x2 - sry0 * z2;
+          double y3 = y2;
+          double z3 = sry0 * x2 + cry0 * z2;
 
-          double depth0 = top0 / down0;
-          double depth1 = top1 / down1;
-          if (depth0 > 0.5 && depth0 < 100 && depth1 > 0.5 && depth1 < 100) {
-            ipr.s = (depth0 + depth1) / 2;
-            ipr.v = 2;
-          } else if (depth0 > 0.5 && depth0 < 100) {
-            ipr.s = depth0;
-            ipr.v = 2;
-          } else if (depth1 > 0.5 && depth1 < 100) {
-            ipr.s = depth1;
+          double x4 = cry1 * x3 + sry1 * z3;
+          double y4 = y3;
+          double z4 = -sry1 * x3 + cry1 * z3;
+
+          double x5 = x4;
+          double y5 = crx1 * y4 - srx1 * z4;
+          double z5 = srx1 * y4 + crx1 * z4;
+
+          double x6 = crz1 * x5 - srz1 * y5;
+          double y6 = srz1 * x5 + crz1 * y5;
+          double z6 = z5;
+
+          u0 = x6 / z6;
+          v0 = y6 / z6;
+
+          x1 = cry1 * (tx1 - tx0) + sry1 * (tz1 - tz0);
+          y1 = ty1 - ty0;
+          z1 = -sry1 * (tx1 - tx0) + cry1 * (tz1 - tz0);
+
+          x2 = x1;
+          y2 = crx1 * y1 - srx1 * z1;
+          z2 = srx1 * y1 + crx1 * z1;
+
+          double tx = crz1 * x2 - srz1 * y2;
+          double ty = srz1 * x2 + crz1 * y2;
+          double tz = z2;
+
+          double delta = sqrt((v0 - v1) * (v0 - v1) + (u0 - u1) * (u0 - u1))
+                       * cos(atan2(tz * v1 - ty, tz * u1 - tx) - atan2(v0 - v1, u0 - u1));
+          double depth = sqrt((tz * u0 - tx) * (tz * u0 - tx) + (tz * v0 - ty) * (tz * v0 - ty)) / delta;
+
+          if (depth > 0.5 && depth < 100) {
+            ipr.s = depth;
             ipr.v = 2;
           }
+        }
+
+        if (ipr.v == 2) {
+          if ((*ipDepthLast)[i] > 0) {
+            ipr.s = 3 * ipr.s * (*ipDepthLast)[i] / (ipr.s + 2 * (*ipDepthLast)[i]);
+          }
+          (*ipDepthLast)[i] = ipr.s;
+        } else if ((*ipDepthLast)[i] > 0) {
+          ipr.s = (*ipDepthLast)[i];
+          ipr.v = 2;
         }
       }
 
@@ -584,6 +588,11 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
   spc.s = transformSum[4];
   spc.v = transformSum[5];
 
+  double crx = cos(transform[0]);
+  double srx = sin(transform[0]);
+  double cry = cos(transform[1]);
+  double sry = sin(transform[1]);
+
   j = 0;
   for (int i = 0; i < imagePointsCurNum; i++) {
     bool ipFound = false;
@@ -599,13 +608,29 @@ void imagePointsHandler(const sensor_msgs::PointCloud2ConstPtr& imagePoints2)
     if (ipFound) {
       startPointsCur->push_back(startPointsLast->points[j]);
       startTransCur->push_back(startTransLast->points[j]);
+
+      double ipz = (*ipDepthLast)[j];
+      double ipx = imagePointsLast->points[j].u * ipz;
+      double ipy = imagePointsLast->points[j].v * ipz;
+
+      x1 = cry * ipx + sry * ipz;
+      y1 = ipy;
+      z1 = -sry * ipx + cry * ipz;
+
+      x2 = x1;
+      y2 = crx * y1 - srx * z1;
+      z2 = srx * y1 + crx * z1;
+
+      ipDepthCur->push_back(z2 + transform[5]);
     } else {
       startPointsCur->push_back(imagePointsCur->points[i]);
       startTransCur->push_back(spc);
+      ipDepthCur->push_back(-1);
     }
   }
   startPointsLast->clear();
   startTransLast->clear();
+  ipDepthLast->clear();
 
   angleSum[0] -= transform[0];
   angleSum[1] -= transform[1];
