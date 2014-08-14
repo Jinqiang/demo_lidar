@@ -33,6 +33,9 @@ double timeRec = 0;
 double rxRec = 0, ryRec = 0, rzRec = 0;
 double txRec = 0, tyRec = 0, tzRec = 0;
 
+bool systemInited = false;
+double initTime;
+
 int startCount = -1;
 const int startSkipNum = 5;
 
@@ -117,7 +120,9 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
       point.z = z2 - tz;
 
       double pointDis = sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
-      if (fabs(point.x / point.z) < 2 && fabs(point.y / point.z) < 1 && point.z > 0.5 && pointDis < 15) {
+      double timeDis = time - initTime - point.intensity;
+      if (fabs(point.x / point.z) < 2 && fabs(point.y / point.z) < 1 && point.z > 0.5 && pointDis < 15 &&
+          timeDis < 5.0) {
         tempCloud->push_back(point);
       }
     }
@@ -173,7 +178,13 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
     return;
   }
 
+  if (!systemInited) {
+    initTime = syncCloud2->header.stamp.toSec();
+    systemInited = true;
+  }
+
   double time = syncCloud2->header.stamp.toSec();
+  double timeLasted = time - initTime;
 
   syncCloud->clear();
   pcl::fromROSMsg(*syncCloud2, *syncCloud);
@@ -221,6 +232,7 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
     point.x = syncCloud->points[i].x;
     point.y = syncCloud->points[i].y;
     point.z = syncCloud->points[i].z;
+    point.intensity = timeLasted;
 
     x1 = cosry2 * point.x - sinry2 * point.z;
     y1 = point.y;
