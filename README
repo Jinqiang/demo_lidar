@@ -24,4 +24,8 @@ How to use:
 
 Datasets can be downloaded at: http://www.frc.ri.cmu.edu/~jizhang03/projects.htm
 
-Note: Camera intrinsic parameters (K and D matrices) are defined in the "src/cameraParameters.h" file.
+Notes: 
+  
+Camera intrinsic parameters (K and D matrices) are defined in the "src/cameraParameters.h" file.
+
+It is possible to accelerate feature tracking with a GPU. To do this, simply replace the "src/featureTracking.cpp" file with the "src/featureTracking_ocl.cpp" file and recompile. We use OpenCL to communicate with the GPU. Users first need to install OpenCL in a version no earlier than 1.1 with full profile, then install OpenCV using CMake with flag WITH_OPENCL=ON.
