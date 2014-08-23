@@ -16,6 +16,9 @@ bool isOddFrame = true;
 
 double timeCur, timeLast;
 
+int detectionCount = 0;
+const int detectionSkipNum = 3;
+
 int showCount = 0;
 const int showSkipNum = 2;
 const int showDSRate = 2;
@@ -132,60 +135,65 @@ void imageDataHandler(const sensor_msgs::Image::ConstPtr& imageData)
   imagePointsCur = imagePointsTemp;
   imagePointsCur->clear();
 
-  oclMat oclFeaturesSub;
   int recordFeatureNum = totalFeatureNum;
-  for (int i = 0; i < ySubregionNum; i++) {
-    for (int j = 0; j < xSubregionNum; j++) {
-      int ind = xSubregionNum * i + j;
-      int numToFind = maxFeatureNumPerSubregion - subregionFeatureNum[ind];
+  detectionCount = (detectionCount + 1) % (detectionSkipNum + 1);
+  if (detectionCount == detectionSkipNum) {
+    oclMat oclFeaturesSub;
+    for (int i = 0; i < ySubregionNum; i++) {
+      for (int j = 0; j < xSubregionNum; j++) {
+        int ind = xSubregionNum * i + j;
+        int numToFind = maxFeatureNumPerSubregion - subregionFeatureNum[ind];
 
-      if (numToFind > maxFeatureNumPerSubregion / 5.0) {
-        int subregionLeft = xBoundary + (int)(subregionWidth * j);
-        int subregionTop = yBoundary + (int)(subregionHeight * i);
-        Rect subregion = Rect(subregionLeft, subregionTop, (int)subregionWidth, (int)subregionHeight);
+        if (numToFind > maxFeatureNumPerSubregion / 5.0) {
+          int subregionLeft = xBoundary + (int)(subregionWidth * j);
+          int subregionTop = yBoundary + (int)(subregionHeight * i);
+          Rect subregion = Rect(subregionLeft, subregionTop, (int)subregionWidth, (int)subregionHeight);
 
-        oclFeatureDetector.maxCorners = numToFind;
-        oclFeatureDetector(oclImageLast(subregion), oclFeaturesSub);
-        if (oclFeaturesSub.cols > 0) {
-          oclFeatureDetector.downloadPoints(oclFeaturesSub, featuresSub);
-          numToFind = featuresSub.size();
-        } else {
-          numToFind = 0;
-        }
-
-        int numFound = 0;
-        for(int k = 0; k < numToFind; k++) {
-          featuresSub[k].x += subregionLeft;
-          featuresSub[k].y += subregionTop;
-
-          int xInd = (featuresSub[k].x + 0.5) / showDSRate;
-          int yInd = (featuresSub[k].y + 0.5) / showDSRate;
-
-          if (harrisLast.at<float>(yInd, xInd) > 1e-7) {
-            featuresLast->push_back(featuresSub[k]);
-            featuresInd.push_back(featuresIndFromStart);
-
-            numFound++;
-            featuresIndFromStart++;
+          oclFeatureDetector.maxCorners = numToFind;
+          oclFeatureDetector(oclImageLast(subregion), oclFeaturesSub);
+          if (oclFeaturesSub.cols > 0) {
+            oclFeatureDetector.downloadPoints(oclFeaturesSub, featuresSub);
+            numToFind = featuresSub.size();
+          } else {
+            numToFind = 0;
           }
+
+          int numFound = 0;
+          for(int k = 0; k < numToFind; k++) {
+            featuresSub[k].x += subregionLeft;
+            featuresSub[k].y += subregionTop;
+
+            int xInd = (featuresSub[k].x + 0.5) / showDSRate;
+            int yInd = (featuresSub[k].y + 0.5) / showDSRate;
+
+            if (harrisLast.at<float>(yInd, xInd) > 1e-7) {
+              featuresLast->push_back(featuresSub[k]);
+              featuresInd.push_back(featuresIndFromStart);
+
+              numFound++;
+              featuresIndFromStart++;
+            }
+          }
+          totalFeatureNum += numFound;
+          subregionFeatureNum[ind] += numFound;
         }
-        totalFeatureNum += numFound;
-        subregionFeatureNum[ind] += numFound;
       }
     }
   }
 
-  Mat featuresLastMat(1, totalFeatureNum, CV_32FC2, (void*)&(*featuresLast)[0]);
-  oclMat oclFeaturesLast(featuresLastMat);
-  oclMat oclFeaturesCur, oclFeaturesStatus;
+  if (totalFeatureNum > 0) {
+    Mat featuresLastMat(1, totalFeatureNum, CV_32FC2, (void*)&(*featuresLast)[0]);
+    oclMat oclFeaturesLast(featuresLastMat);
+    oclMat oclFeaturesCur, oclFeaturesStatus;
 
-  oclOpticalFlow.sparse(oclImageLast, oclImageCur, oclFeaturesLast, oclFeaturesCur, oclFeaturesStatus);
-  if (oclFeaturesCur.cols > 0 && oclFeaturesCur.cols == oclFeaturesStatus.cols) {
-    download(oclFeaturesCur, *featuresCur);
-    download(oclFeaturesStatus, featuresStatus);
-    totalFeatureNum = featuresCur->size();
-  } else {
-    totalFeatureNum = 0;
+    oclOpticalFlow.sparse(oclImageLast, oclImageCur, oclFeaturesLast, oclFeaturesCur, oclFeaturesStatus);
+    if (oclFeaturesCur.cols > 0 && oclFeaturesCur.cols == oclFeaturesStatus.cols) {
+      download(oclFeaturesCur, *featuresCur);
+      download(oclFeaturesStatus, featuresStatus);
+      totalFeatureNum = featuresCur->size();
+    } else {
+      totalFeatureNum = 0;
+    }
   }
 
   for (int i = 0; i < totalSubregionNum; i++) {
